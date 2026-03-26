@@ -1,0 +1,48 @@
+# Environment & secrets — NEVER commit these
+.env
+.env.*
+!.env.example
+
+# SQLite databases — contain PHI
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+vault.sqlite*
+audit.sqlite*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+venv/
+.venv/
+env/
+ENV/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Models (large files)
+models/*.pt
+models/*.h5
+models/*.pth
+
+# Logs
+*.log
+logs/
+
+# Compiled code database (rebuilt on deploy)
+data/codes/medical_codes.sqlite
