@@ -1,0 +1,180 @@
+[
+  {
+    "scenario": "Brain tumor with valid imaging — NEEDS REVIEW (prior auth)",
+    "patient_info": {
+      "patient_id": "MRN-10001",
+      "name": "Jane Smith",
+      "date_of_birth": "1964-03-12",
+      "age": 60,
+      "sex": "F",
+      "insurance_plan": "premium",
+      "policy_number": "POL-99234"
+    },
+    "clinical_notes": "Patient Jane Smith presents with a confirmed glioma stage 2 in the left temporal lobe. Neurologist recommends MRI brain with contrast for treatment planning and surveillance. Patient has been experiencing progressive headaches and mild cognitive changes over the past 3 months. Prior treatment with temozolomide commenced 6 weeks ago.",
+    "structured_data": {
+      "diagnoses": ["glioma stage 2"],
+      "procedures": ["mri brain"],
+      "symptoms": ["headache", "cognitive changes"],
+      "medications": ["temozolomide"]
+    },
+    "imaging_mode": "skipped",
+    "expected_decision": "needs_review",
+    "expected_reason": "AUTH-001: MRI requires prior authorization"
+  },
+  {
+    "scenario": "Chemotherapy without cancer diagnosis — REJECTED",
+    "patient_info": {
+      "patient_id": "MRN-10002",
+      "name": "Robert Chen",
+      "date_of_birth": "1974-06-15",
+      "age": 50,
+      "sex": "M",
+      "insurance_plan": "standard",
+      "policy_number": "POL-88123"
+    },
+    "clinical_notes": "Patient Robert Chen presenting for chemotherapy administration. History of hypertension and type 2 diabetes. No current cancer diagnosis documented in chart. Patient states he is enrolled in a clinical trial but no supporting oncology documentation provided with this claim.",
+    "structured_data": {
+      "diagnoses": ["hypertension", "type 2 diabetes"],
+      "procedures": ["chemotherapy"],
+      "symptoms": [],
+      "medications": ["metformin", "lisinopril"]
+    },
+    "imaging_mode": "skipped",
+    "expected_decision": "rejected",
+    "expected_reason": "COMPAT-005: Chemotherapy requires neoplasm diagnosis"
+  },
+  {
+    "scenario": "MRI brain with Alzheimer diagnosis — NEEDS REVIEW (prior auth)",
+    "patient_info": {
+      "patient_id": "MRN-10003",
+      "name": "Maria Garcia",
+      "date_of_birth": "1949-09-20",
+      "age": 75,
+      "sex": "F",
+      "insurance_plan": "standard",
+      "policy_number": "POL-77456"
+    },
+    "clinical_notes": "Patient Maria Garcia referred for brain MRI to evaluate progressive cognitive decline. Formal neuropsychological testing confirms moderate Alzheimer disease. MRI requested to rule out structural causes and assess atrophy pattern. Patient reports increasing memory difficulties, confusion, and difficulty with daily activities over the past 18 months.",
+    "structured_data": {
+      "diagnoses": ["alzheimer's disease", "moderate dementia"],
+      "procedures": ["mri brain"],
+      "symptoms": ["memory loss", "confusion"],
+      "medications": ["donepezil", "memantine"]
+    },
+    "imaging_mode": "skipped",
+    "expected_decision": "needs_review",
+    "expected_reason": "AUTH-001: MRI requires prior authorization"
+  },
+  {
+    "scenario": "BASIC plan knee replacement — REJECTED (coverage exclusion)",
+    "patient_info": {
+      "patient_id": "MRN-10004",
+      "name": "David Park",
+      "date_of_birth": "1979-04-08",
+      "age": 45,
+      "sex": "M",
+      "insurance_plan": "basic",
+      "policy_number": "POL-55789"
+    },
+    "clinical_notes": "Patient David Park presenting for total knee arthroplasty. Severe osteoarthritis of the right knee confirmed by X-ray and clinical examination. Conservative treatment with physical therapy and NSAIDs has been attempted for 12 months without adequate relief. Orthopedic surgeon recommends total knee replacement.",
+    "structured_data": {
+      "diagnoses": ["knee osteoarthritis"],
+      "procedures": ["knee replacement"],
+      "symptoms": ["knee pain", "limited range of motion"],
+      "medications": ["ibuprofen", "celecoxib"]
+    },
+    "imaging_mode": "skipped",
+    "expected_decision": "rejected",
+    "expected_reason": "COV-001: BASIC plan excludes elective joint replacement"
+  },
+  {
+    "scenario": "Missing diagnosis, symptoms only — NEEDS REVIEW (edge case)",
+    "patient_info": {
+      "patient_id": "MRN-10005",
+      "name": "Sarah Johnson",
+      "date_of_birth": "1998-11-30",
+      "age": 26,
+      "sex": "F",
+      "insurance_plan": "standard",
+      "policy_number": "POL-44321"
+    },
+    "clinical_notes": "Patient Sarah Johnson presenting with persistent headaches, visual disturbances, and balance difficulties for 6 weeks. CT head ordered. No formal diagnosis established at this time. Awaiting specialist referral to neurology. Symptoms are progressive and worsening.",
+    "structured_data": {
+      "diagnoses": [],
+      "procedures": ["ct brain"],
+      "symptoms": ["headache", "visual disturbances", "balance difficulties"],
+      "medications": []
+    },
+    "imaging_mode": "skipped",
+    "expected_decision": "needs_review",
+    "expected_reason": "MISSING_DIAGNOSIS edge case"
+  },
+  {
+    "scenario": "Breast cancer mastectomy with correct diagnosis — APPROVED",
+    "patient_info": {
+      "patient_id": "MRN-10006",
+      "name": "Linda Taylor",
+      "date_of_birth": "1964-07-22",
+      "age": 60,
+      "sex": "F",
+      "insurance_plan": "premium",
+      "policy_number": "POL-11987"
+    },
+    "clinical_notes": "Patient Linda Taylor with confirmed malignant breast carcinoma right breast, Stage II. Histopathology shows invasive ductal carcinoma ER+/PR+/HER2-. Patient consented for right simple mastectomy followed by adjuvant chemotherapy with doxorubicin and cyclophosphamide. Oncology and surgical teams have reviewed and approved treatment plan.",
+    "structured_data": {
+      "diagnoses": ["breast cancer"],
+      "procedures": ["mastectomy", "chemotherapy"],
+      "symptoms": [],
+      "medications": ["doxorubicin", "cyclophosphamide"]
+    },
+    "imaging_mode": "skipped",
+    "expected_decision": "approved",
+    "expected_reason": "All rules passed"
+  },
+  {
+    "scenario": "Pediatric joint replacement — REJECTED (age restriction)",
+    "patient_info": {
+      "patient_id": "MRN-10007",
+      "name": "Tyler Morrison",
+      "date_of_birth": "2011-02-14",
+      "age": 13,
+      "sex": "M",
+      "insurance_plan": "standard",
+      "policy_number": "POL-33654"
+    },
+    "clinical_notes": "Patient Tyler Morrison age 13 with severe juvenile idiopathic arthritis affecting the right knee. Multiple conservative treatments have failed including DMARDs and biologic agents. Orthopedic surgeon requesting total knee arthroplasty. Unusual presentation for pediatric patient but conservative options exhausted.",
+    "structured_data": {
+      "diagnoses": ["knee osteoarthritis"],
+      "procedures": ["knee replacement"],
+      "symptoms": ["knee pain", "swelling", "limited mobility"],
+      "medications": ["methotrexate", "etanercept"]
+    },
+    "imaging_mode": "skipped",
+    "expected_decision": "rejected",
+    "expected_reason": "AGE-002: Joint replacement not covered under age 18"
+  },
+  {
+    "scenario": "ACL reconstruction with imaging mismatch — NEEDS REVIEW",
+    "patient_info": {
+      "patient_id": "MRN-10008",
+      "name": "Amanda Rivera",
+      "date_of_birth": "1994-08-05",
+      "age": 30,
+      "sex": "F",
+      "insurance_plan": "premium",
+      "policy_number": "POL-22876"
+    },
+    "clinical_notes": "Patient Amanda Rivera presenting for ACL reconstruction following sports injury. MRI knee confirms complete anterior cruciate ligament tear right knee. Patient is an active athlete and wishes to return to competitive sport. Physical examination confirms anterior instability. Surgeon recommends arthroscopic ACL reconstruction with patellar tendon autograft.",
+    "structured_data": {
+      "diagnoses": ["acl tear"],
+      "procedures": ["acl reconstruction"],
+      "symptoms": ["knee instability", "pain", "swelling"],
+      "medications": ["ibuprofen"]
+    },
+    "imaging_mode": "precomputed",
+    "precomputed_class": "glioma_stage_2",
+    "precomputed_confidence": 0.91,
+    "expected_decision": "needs_review",
+    "expected_reason": "IMAGE_TEXT_MISMATCH: imaging says glioma, notes say ACL tear"
+  }
+]

@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClaimIQ — Healthcare Claims Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300;1,9..144,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--bg2:#ffffff;--bg3:#f0efe9;
+  --border:#e2e0d8;--border2:#d4d2c8;
+  --text:#1a1a18;--text2:#5a5850;--text3:#9a9888;
+  --approved:#0a7c52;--approved-bg:#ecfdf5;--approved-border:#a7f3d0;
+  --rejected:#c41c3a;--rejected-bg:#fff1f2;--rejected-border:#fecdd3;
+  --review:#92400e;--review-bg:#fffbeb;--review-border:#fde68a;
+  --accent:#1d4ed8;--accent-bg:#eff6ff;--accent-border:#bfdbfe;
+  --purple:#6d28d9;--purple-bg:#f5f3ff;
+  --mono:'DM Mono',monospace;
+  --serif:'Fraunces',serif;
+  --sans:'DM Sans',sans-serif;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:58px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#1d4ed8,#6d28d9);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#fff;font-weight:500}
+.logo-name{font-family:var(--serif);font-size:1.25rem;color:var(--text);letter-spacing:-0.01em}
+.logo-sub{font-size:0.62rem;color:var(--text3);font-family:var(--mono);margin-top:-1px}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.dot{width:7px;height:7px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 2px #dcfce7;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px #dcfce7}50%{box-shadow:0 0 0 4px #dcfce7}}
+.hdr-status{font-family:var(--mono);font-size:0.68rem;color:var(--text2)}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:480px 1fr;min-height:calc(100vh - 58px)}
+.lp{border-right:1px solid var(--border);padding:1.5rem;overflow-y:auto;max-height:calc(100vh - 58px);background:var(--bg)}
+.rp{padding:1.5rem;background:var(--bg2);overflow-y:auto;max-height:calc(100vh - 58px)}
+
+/* SECTION TITLE */
+.stitle{font-family:var(--mono);font-size:0.6rem;letter-spacing:.14em;color:var(--text3);text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;gap:8px}
+.stitle::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.5rem}
+.stat{background:var(--bg2);padding:.9rem 1rem}
+.sv{font-family:var(--serif);font-size:1.8rem;font-weight:500;line-height:1}
+.sl{font-size:.62rem;color:var(--text3);margin-top:4px;font-family:var(--mono)}
+.s-total .sv{color:var(--accent)}
+.s-ok .sv{color:var(--approved)}
+.s-rej .sv{color:var(--rejected)}
+.s-rev .sv{color:var(--review)}
+
+/* FORM */
+.fc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.3rem;margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.fgi{display:flex;flex-direction:column;gap:4px}.fgi.full{grid-column:1/-1}
+.fgi label{font-size:.6rem;color:var(--text3);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;font-weight:500}
+input,select,textarea{background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:.78rem;padding:7px 10px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+select option{background:var(--bg2)}
+textarea{resize:vertical;min-height:76px;line-height:1.5;font-family:var(--sans);font-size:.8rem}
+.ti{display:flex;flex-wrap:wrap;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 8px;min-height:38px;cursor:text;align-items:center;transition:border-color .2s}
+.ti:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.tag{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);border-radius:5px;padding:2px 8px;font-size:.65rem;font-family:var(--mono);display:flex;align-items:center;gap:3px}
+.tr{cursor:pointer;opacity:.5;font-size:.9rem;line-height:1}.tr:hover{opacity:1}
+.ti input{background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.72rem;color:var(--text);min-width:90px;flex:1;padding:2px 0}
+
+/* BUTTON */
+.btn{width:100%;padding:11px;border-radius:8px;border:none;cursor:pointer;background:linear-gradient(135deg,#1d4ed8,#6d28d9);color:#fff;font-family:var(--sans);font-size:.85rem;font-weight:600;transition:opacity .2s,transform .1s,box-shadow .2s;margin-top:10px;letter-spacing:.01em}
+.btn:hover{opacity:.92;box-shadow:0 4px 12px rgba(29,78,216,.3)}
+.btn:active{transform:scale(.99)}
+.btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+
+/* CLAIM CARDS */
+.cl{display:flex;flex-direction:column;gap:6px}
+.cc{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:11px 13px;cursor:pointer;transition:border-color .15s,box-shadow .15s;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}
+.cc:hover{border-color:var(--border2);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.cc.active{border-color:var(--accent);background:var(--accent-bg);box-shadow:0 0 0 3px rgba(29,78,216,.08)}
+.cid{font-family:var(--mono);font-size:.62rem;color:var(--text3)}
+.cnotes{font-size:.75rem;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+.ccodes{font-family:var(--mono);font-size:.6rem;color:var(--text3);margin-top:3px}
+.cbadge{font-family:var(--mono);font-size:.6rem;font-weight:500;padding:3px 8px;border-radius:5px;white-space:nowrap}
+.b-approved{background:var(--approved-bg);color:var(--approved);border:1px solid var(--approved-border)}
+.b-rejected{background:var(--rejected-bg);color:var(--rejected);border:1px solid var(--rejected-border)}
+.b-needs_review{background:var(--review-bg);color:var(--review);border:1px solid var(--review-border)}
+.cbar{width:55px;height:3px;background:var(--border);border-radius:2px;margin-top:6px}
+.cbf{height:100%;border-radius:2px;transition:width .6s}
+
+/* RIGHT PANEL - EMPTY */
+.re{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text3);font-family:var(--mono);font-size:.72rem;text-align:center}
+.re-icon{width:56px;height:56px;border-radius:16px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:4px}
+
+/* RESULT */
+.rdec{font-family:var(--serif);font-size:2.4rem;font-weight:500;line-height:1;margin-bottom:6px;letter-spacing:-.02em}
+.rconf{font-family:var(--mono);font-size:.72rem;color:var(--text2)}
+.rcid{font-family:var(--mono);font-size:.6rem;color:var(--text3);margin-top:3px}
+
+/* SUMMARY REPORT */
+.report{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:1.4rem;margin-bottom:1.4rem}
+.report-header{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
+.report-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.report-title{font-family:var(--serif);font-size:1.1rem;font-weight:500;letter-spacing:-.01em}
+.report-sub{font-size:.68rem;color:var(--text2);margin-top:2px;font-family:var(--mono)}
+.report-body{font-size:.82rem;color:var(--text2);line-height:1.7}
+.report-body p{margin-bottom:.6rem}
+.report-body p:last-child{margin-bottom:0}
+.report-section{margin-bottom:1rem}
+.report-section-title{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.5rem;display:flex;align-items:center;gap:6px}
+.report-section-title::after{content:'';flex:1;height:1px;background:var(--border2)}
+.action-list{list-style:none;display:flex;flex-direction:column;gap:5px}
+.action-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;font-size:.78rem;color:var(--text2);line-height:1.4}
+.action-num{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.6rem;flex-shrink:0;margin-top:1px;font-weight:600}
+.finding-row{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:.77rem}
+.finding-row:last-child{border:none}
+.finding-label{font-family:var(--mono);font-size:.65rem;color:var(--text3);width:80px;flex-shrink:0;padding-top:1px}
+.finding-val{color:var(--text);line-height:1.4}
+
+/* CODE CHIPS */
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:1rem}
+.chip{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 10px}
+.cnum{font-family:var(--mono);font-size:.82rem;color:var(--accent);font-weight:500}
+.cnum.cpt{color:var(--purple)}
+.cdesc{font-size:.68rem;color:var(--text2);margin-top:2px;line-height:1.3}
+.cconf-badge{display:inline-block;font-family:var(--mono);font-size:.58rem;color:var(--text3);background:var(--border);padding:1px 5px;border-radius:3px;margin-top:4px}
+
+/* RULES */
+.rr{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.rr:last-child{border:none}
+.ri{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;flex-shrink:0;margin-top:1px;font-weight:700}
+.ri-ok{background:var(--approved-bg);color:var(--approved);border:1px solid var(--approved-border)}
+.ri-rej{background:var(--rejected-bg);color:var(--rejected);border:1px solid var(--rejected-border)}
+.ri-rev{background:var(--review-bg);color:var(--review);border:1px solid var(--review-border)}
+.rid{font-family:var(--mono);font-size:.68rem;color:var(--text);font-weight:500}
+.rreason{font-size:.68rem;color:var(--text2);line-height:1.4;margin-top:2px}
+
+/* EDGE CASES */
+.er{background:var(--rejected-bg);border:1px solid var(--rejected-border);border-radius:8px;padding:9px 10px;margin-bottom:6px}
+.et{font-family:var(--mono);font-size:.65rem;color:var(--rejected);font-weight:500}
+.ed{font-size:.68rem;color:var(--text2);margin-top:3px;line-height:1.4}
+
+/* CHAIN */
+.cs{display:flex;gap:10px;padding:8px 0;position:relative}
+.cs::before{content:'';position:absolute;left:7px;top:24px;bottom:-8px;width:1px;background:var(--border)}
+.cs:last-child::before{display:none}
+.csdot{width:16px;height:16px;border-radius:50%;background:var(--accent-bg);border:2px solid var(--accent);flex-shrink:0;margin-top:2px}
+.csstage{font-family:var(--mono);font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+.csout{font-size:.7rem;color:var(--text2);line-height:1.4;margin-top:2px}
+
+/* TABS */
+.tabs{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;margin-bottom:1.2rem}
+.tab{flex:1;padding:7px 6px;text-align:center;font-family:var(--mono);font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;color:var(--text3);background:transparent;border:none;border-radius:7px;transition:all .2s;font-weight:500}
+.tab.active{background:var(--bg2);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.tc{display:none}.tc.active{display:block}
+
+/* LOADING OVERLAY */
+.lov{display:none;position:fixed;inset:0;z-index:200;background:rgba(245,244,240,.92);backdrop-filter:blur(6px);align-items:center;justify-content:center;flex-direction:column;gap:0}
+.lov.on{display:flex}
+.lov-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:2rem;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.12)}
+.lov-title{font-family:var(--serif);font-size:1.3rem;font-weight:500;margin-bottom:4px;letter-spacing:-.01em}
+.lov-sub{font-family:var(--mono);font-size:.65rem;color:var(--text3);margin-bottom:1.5rem}
+.pipeline-steps{display:flex;flex-direction:column;gap:0}
+.ps{display:flex;align-items:center;gap:12px;padding:10px 0;position:relative}
+.ps:not(:last-child)::after{content:'';position:absolute;left:15px;top:38px;height:100%;width:1px;background:var(--border)}
+.ps-icon{width:30px;height:30px;border-radius:50%;border:2px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.65rem;color:var(--text3);flex-shrink:0;transition:all .4s;font-weight:500}
+.ps-icon.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);box-shadow:0 0 0 4px rgba(29,78,216,.1)}
+.ps-icon.done{border-color:var(--approved);background:var(--approved-bg);color:var(--approved)}
+.ps-content{flex:1}
+.ps-name{font-size:.78rem;font-weight:500;color:var(--text);transition:color .3s}
+.ps-name.active{color:var(--accent)}
+.ps-name.done{color:var(--approved)}
+.ps-desc{font-family:var(--mono);font-size:.62rem;color:var(--text3);margin-top:1px}
+.ps-time{font-family:var(--mono);font-size:.6rem;color:var(--text3);margin-left:auto}
+.ps-time.done{color:var(--approved)}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;margin-top:1.2rem;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#1d4ed8,#6d28d9);border-radius:2px;transition:width .5s ease;width:0%}
+
+/* TOAST */
+.tst{position:fixed;bottom:20px;right:20px;z-index:300;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:10px 16px;font-family:var(--mono);font-size:.72rem;transform:translateY(50px);opacity:0;transition:all .3s;max-width:320px;box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.tst.show{transform:translateY(0);opacity:1}
+.tst.err{border-color:var(--rejected-border);color:var(--rejected);background:var(--rejected-bg)}
+.tst.ok{border-color:var(--approved-border);color:var(--approved);background:var(--approved-bg)}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="lov" id="lov">
+  <div class="lov-card">
+    <div class="lov-title">Processing Claim</div>
+    <div class="lov-sub">Running through 9-stage adjudication pipeline</div>
+    <div class="pipeline-steps">
+      <div class="ps" id="ps1">
+        <div class="ps-icon" id="pi1">1</div>
+        <div class="ps-content">
+          <div class="ps-name" id="pn1">PHI Tokenization</div>
+          <div class="ps-desc">Replacing patient identifiers with vault tokens</div>
+        </div>
+        <div class="ps-time" id="pt1"></div>
+      </div>
+      <div class="ps" id="ps2">
+        <div class="ps-icon" id="pi2">2</div>
+        <div class="ps-content">
+          <div class="ps-name" id="pn2">Clinical Extraction</div>
+          <div class="ps-desc">NER — extracting diagnoses, procedures, medications</div>
+        </div>
+        <div class="ps-time" id="pt2"></div>
+      </div>
+      <div class="ps" id="ps3">
+        <div class="ps-icon" id="pi3">3</div>
+        <div class="ps-content">
+          <div class="ps-name" id="pn3">Medical Coding</div>
+          <div class="ps-desc">Mapping entities to ICD-10-CM and CPT codes</div>
+        </div>
+        <div class="ps-time" id="pt3"></div>
+      </div>
+      <div class="ps" id="ps4">
+        <div class="ps-icon" id="pi4">4</div>
+        <div class="ps-content">
+          <div class="ps-name" id="pn4">Guideline Retrieval</div>
+          <div class="ps-desc">RAG — fetching NCCN, CMS, AHA passages</div>
+        </div>
+        <div class="ps-time" id="pt4"></div>
+      </div>
+      <div class="ps" id="ps5">
+        <div class="ps-icon" id="pi5">5</div>
+        <div class="ps-content">
+          <div class="ps-name" id="pn5">Policy Rule Engine</div>
+          <div class="ps-desc">Evaluating 14 rules — compatibility, auth, coverage</div>
+        </div>
+        <div class="ps-time" id="pt5"></div>
+      </div>
+      <div class="ps" id="ps6">
+        <div class="ps-icon" id="pi6">6</div>
+        <div class="ps-content">
+          <div class="ps-name" id="pn6">Decision + Explainability</div>
+          <div class="ps-desc">Final adjudication with full reasoning chain</div>
+        </div>
+        <div class="ps-time" id="pt6"></div>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+</div>
+
+<div class="tst" id="tst"></div>
+
+<header class="hdr">
+  <div class="logo">
+    <div class="logo-mark">Rx</div>
+    <div>
+      <div class="logo-name">ClaimIQ</div>
+      <div class="logo-sub">Healthcare Claims Adjudication Agent</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="dot" id="statusDot"></div>
+    <span class="hdr-status" id="apiStatus">Connecting...</span>
+  </div>
+</header>
+
+<div class="layout">
+<div class="lp">
+
+  <div class="stats">
+    <div class="stat s-total"><div class="sv" id="sT">0</div><div class="sl">Total</div></div>
+    <div class="stat s-ok"><div class="sv" id="sA">0</div><div class="sl">Approved</div></div>
+    <div class="stat s-rej"><div class="sv" id="sR">0</div><div class="sl">Rejected</div></div>
+    <div class="stat s-rev"><div class="sv" id="sV">0</div><div class="sl">Review</div></div>
+  </div>
+
+  <div class="stitle">New Claim</div>
+  <div class="fc">
+    <div class="fg">
+      <div class="fgi"><label>Patient Name</label><input id="pname" value="Jane Smith"></div>
+      <div class="fgi"><label>Patient ID</label><input id="pid" value="MRN-10001"></div>
+      <div class="fgi"><label>Date of Birth</label><input id="dob" value="1964-03-12"></div>
+      <div class="fgi"><label>Age</label><input type="number" id="age" value="60" min="0" max="120"></div>
+      <div class="fgi"><label>Sex</label>
+        <select id="sex"><option value="F">Female</option><option value="M">Male</option><option value="Other">Other</option></select>
+      </div>
+      <div class="fgi"><label>Insurance Plan</label>
+        <select id="plan"><option value="premium">Premium</option><option value="standard">Standard</option><option value="basic">Basic</option></select>
+      </div>
+      <div class="fgi"><label>Policy Number</label><input id="pol" value="POL-99234"></div>
+      <div class="fgi"><label>Imaging Mode</label>
+        <select id="img"><option value="skipped">Skipped</option><option value="precomputed">Pre-computed</option></select>
+      </div>
+      <div class="fgi full"><label>Clinical Notes</label>
+        <textarea id="notes">Patient presents with confirmed glioma stage 2 in the left temporal lobe. MRI brain recommended for treatment planning and surveillance.</textarea>
+      </div>
+      <div class="fgi full"><label>Diagnoses — press Enter to add</label>
+        <div class="ti" id="dTags"><input id="dIn" placeholder="e.g. glioma stage 2" onkeydown="addTag(event,'d')"></div>
+      </div>
+      <div class="fgi full"><label>Procedures — press Enter to add</label>
+        <div class="ti" id="pTags"><input id="pIn" placeholder="e.g. mri brain" onkeydown="addTag(event,'p')"></div>
+      </div>
+    </div>
+    <button class="btn" onclick="submit()">Submit Claim for Adjudication →</button>
+  </div>
+
+  <div class="stitle">Claims History</div>
+  <div class="cl" id="cl">
+    <div style="color:var(--text3);font-family:var(--mono);font-size:.68rem;padding:.8rem 0;text-align:center">No claims yet — submit one above</div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="rp" id="rp">
+  <div class="re">
+    <div class="re-icon">📋</div>
+    <div style="font-size:.8rem;color:var(--text2);font-family:var(--sans)">Submit a claim to see the full adjudication report</div>
+    <div style="color:var(--text3);font-size:.65rem">ICD-10/CPT codes · Rule evaluations · Action plan · Audit trail</div>
+  </div>
+</div>
+</div>
+
+<script>
+const API='http://localhost:8000';
+let claims=[],dTags=[],pTags=[],stats={t:0,a:0,r:0,v:0};
+
+// ── Tag input ──────────────────────────────────────────────────────
+function addTag(e,type){
+  if(e.key!=='Enter')return;e.preventDefault();
+  const inp=document.getElementById(type==='d'?'dIn':'pIn');
+  const v=inp.value.trim();if(!v)return;
+  if(type==='d')dTags.push(v);else pTags.push(v);
+  renderTags(type);inp.value='';
+}
+function renderTags(type){
+  const con=document.getElementById(type==='d'?'dTags':'pTags');
+  const inp=document.getElementById(type==='d'?'dIn':'pIn');
+  const tags=type==='d'?dTags:pTags;
+  con.innerHTML='';
+  tags.forEach((t,i)=>{
+    const el=document.createElement('span');el.className='tag';
+    el.innerHTML=`${t}<span class="tr" onclick="removeTag('${type}',${i})">×</span>`;
+    con.appendChild(el);
+  });
+  con.appendChild(inp);
+}
+function removeTag(type,i){if(type==='d')dTags.splice(i,1);else pTags.splice(i,1);renderTags(type);}
+
+// ── Pipeline loading animation (real timing) ──────────────────────
+const STAGE_DURATIONS = [600, 1200, 700, 500, 600, 500]; // ms per stage
+let loadInterval=null, loadTimers=[];
+
+function showLoad(){
+  document.getElementById('lov').classList.add('on');
+  document.getElementById('progressFill').style.width='0%';
+  // Reset all steps
+  for(let i=1;i<=6;i++){
+    document.getElementById(`pi${i}`).className='ps-icon';
+    document.getElementById(`pn${i}`).className='ps-name';
+    document.getElementById(`pt${i}`).textContent='';
+    document.getElementById(`pt${i}`).className='ps-time';
+  }
+  let elapsed=0;
+  const total=STAGE_DURATIONS.reduce((a,b)=>a+b,0);
+  loadTimers=[];
+  STAGE_DURATIONS.forEach((dur,idx)=>{
+    const step=idx+1;
+    // Activate step
+    loadTimers.push(setTimeout(()=>{
+      if(step>1){
+        document.getElementById(`pi${step-1}`).className='ps-icon done';
+        document.getElementById(`pi${step-1}`).textContent='✓';
+        document.getElementById(`pn${step-1}`).className='ps-name done';
+        document.getElementById(`pt${step-1}`).className='ps-time done';
+      }
+      document.getElementById(`pi${step}`).className='ps-icon active';
+      document.getElementById(`pn${step}`).className='ps-name active';
+      document.getElementById(`pt${step}`).textContent='running...';
+      const pct=((elapsed)/total)*100;
+      document.getElementById('progressFill').style.width=pct+'%';
+    }, elapsed));
+    elapsed+=dur;
+  });
+  // Complete last step after all done
+  loadTimers.push(setTimeout(()=>{
+    document.getElementById('pi6').className='ps-icon done';
+    document.getElementById('pi6').textContent='✓';
+    document.getElementById('pn6').className='ps-name done';
+    document.getElementById('pt6').className='ps-time done';
+    document.getElementById('progressFill').style.width='100%';
+  }, elapsed));
+}
+
+function hideLoad(){
+  loadTimers.forEach(t=>clearTimeout(t));loadTimers=[];
+  setTimeout(()=>{document.getElementById('lov').classList.remove('on');},400);
+}
+
+// ── Toast ──────────────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const el=document.getElementById('tst');el.textContent=msg;
+  el.className=`tst ${type} show`;
+  setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// ── Submit ─────────────────────────────────────────────────────────
+async function submit(){
+  const btn=document.querySelector('.btn');btn.disabled=true;
+  const payload={
+    patient_info:{
+      patient_id:document.getElementById('pid').value||'MRN-001',
+      name:document.getElementById('pname').value||'Patient',
+      date_of_birth:document.getElementById('dob').value||'1980-01-01',
+      age:parseInt(document.getElementById('age').value)||40,
+      sex:document.getElementById('sex').value,
+      insurance_plan:document.getElementById('plan').value,
+      policy_number:document.getElementById('pol').value||'POL-001',
+    },
+    clinical_notes:document.getElementById('notes').value,
+    structured_data:{diagnoses:[...dTags],procedures:[...pTags],symptoms:[],medications:[]},
+    imaging_mode:document.getElementById('img').value,
+  };
+  showLoad();
+  const minWait=new Promise(r=>setTimeout(r,4200)); // minimum display time
+  try{
+    const [res]=await Promise.all([
+      fetch(`${API}/adjudicate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
+      minWait
+    ]);
+    const data=await res.json();
+    hideLoad();
+    if(!res.ok){toast(`Error: ${data.detail||'failed'}`,'err');return;}
+    claims.unshift({...data,_notes:payload.clinical_notes,_name:payload.patient_info.name,_plan:payload.patient_info.insurance_plan});
+    const d=data.decision;stats.t++;
+    if(d==='approved')stats.a++;else if(d==='rejected')stats.r++;else stats.v++;
+    document.getElementById('sT').textContent=stats.t;
+    document.getElementById('sA').textContent=stats.a;
+    document.getElementById('sR').textContent=stats.r;
+    document.getElementById('sV').textContent=stats.v;
+    renderList();renderResult(data,payload);
+    const label=d==='approved'?'APPROVED':d==='rejected'?'REJECTED':'NEEDS REVIEW';
+    toast(`${data.claim_id} — ${label}`,d==='approved'?'ok':'err');
+  }catch(e){
+    hideLoad();
+    toast('Cannot connect — is API running on port 8000?','err');
+  }finally{btn.disabled=false;}
+}
+
+// ── Claims list ────────────────────────────────────────────────────
+function renderList(){
+  const el=document.getElementById('cl');
+  if(!claims.length){el.innerHTML='<div style="color:var(--text3);font-family:var(--mono);font-size:.68rem;padding:.8rem 0;text-align:center">No claims yet</div>';return;}
+  el.innerHTML=claims.map((c,i)=>{
+    const codes=[...(c.icd10_codes||[]).map(x=>x.code),...(c.cpt_codes||[]).map(x=>x.code)].slice(0,4).join(' · ');
+    const conf=Math.round(c.confidence_score*100);
+    const col=c.decision==='approved'?'#16a34a':c.decision==='rejected'?'#c41c3a':'#92400e';
+    return`<div class="cc" id="c${i}" onclick="sel(${i})">
+      <div>
+        <div class="cid">${c.claim_id}</div>
+        <div class="cnotes">${(c._notes||'').slice(0,58)}...</div>
+        <div class="ccodes">${codes||'no codes mapped'}</div>
+        <div class="cbar"><div class="cbf" style="width:${conf}%;background:${col}"></div></div>
+      </div>
+      <div style="text-align:right">
+        <div class="cbadge b-${c.decision}">${c.decision.replace('_',' ')}</div>
+        <div style="font-family:var(--mono);font-size:.58rem;color:var(--text3);margin-top:4px">${conf}% conf</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function sel(i){
+  document.querySelectorAll('.cc').forEach(c=>c.classList.remove('active'));
+  document.getElementById(`c${i}`)?.classList.add('active');
+  renderResult(claims[i],null);
+}
+
+// ── Build summary report ───────────────────────────────────────────
+function buildSummaryReport(d, payload){
+  const dec=d.decision;
+  const conf=Math.round(d.confidence_score*100);
+  const name=d._name || payload?.patient_info?.name || 'the patient';
+  const plan=d._plan || payload?.patient_info?.insurance_plan || 'unknown';
+  const icdList=(d.icd10_codes||[]).map(c=>`${c.code} (${c.description})`).join(', ')||'none identified';
+  const cptList=(d.cpt_codes||[]).map(c=>`${c.code} (${c.description})`).join(', ')||'none identified';
+  const blockingRules=(d.rule_evaluations||[]).filter(r=>!r.passed&&r.action==='reject');
+  const reviewRules=(d.rule_evaluations||[]).filter(r=>!r.passed&&r.action==='flag_review');
+  const edgeCases=d.edge_cases||[];
+  const hasImgMismatch=edgeCases.some(e=>e.type==='image_text_mismatch');
+
+  // Decision colour + icon
+  let decIcon, decBg, decBorder, decColor, decTitle;
+  if(dec==='approved'){
+    decIcon='✓';decBg='var(--approved-bg)';decBorder='var(--approved-border)';decColor='var(--approved)';
+    decTitle='Claim Approved';
+  } else if(dec==='rejected'){
+    decIcon='✗';decBg='var(--rejected-bg)';decBorder='var(--rejected-border)';decColor='var(--rejected)';
+    decTitle='Claim Rejected';
+  } else {
+    decIcon='!';decBg='var(--review-bg)';decBorder='var(--review-border)';decColor='var(--review)';
+    decTitle='Manual Review Required';
+  }
+
+  // Build narrative
+  let narrative='';
+  if(dec==='approved'){
+    narrative=`This claim has been <strong>approved</strong> with ${conf}% confidence. All ${d.rule_evaluations?.length||0} policy rules passed and no clinical anomalies were detected. The submitted diagnosis and procedure codes are medically consistent and covered under the patient's ${plan} insurance plan. No further action is required — the claim may proceed to payment processing.`;
+  } else if(dec==='rejected'){
+    const primary=blockingRules[0];
+    narrative=`This claim has been <strong>rejected</strong> with ${conf}% confidence. ${primary?`The primary rejection reason is rule <strong>${primary.rule_id}</strong>: ${primary.reason}.`:''} The claim cannot be approved in its current form. Review the required actions below to understand what must be corrected before resubmission.`;
+  } else {
+    const reasons=[];
+    if(reviewRules.length>0)reasons.push(`${reviewRules.length} policy rule(s) require payer verification`);
+    if(edgeCases.length>0)reasons.push(`${edgeCases.length} clinical anomaly(ies) detected`);
+    if(hasImgMismatch)reasons.push('imaging and clinical text diagnoses are in conflict');
+    narrative=`This claim has been <strong>flagged for manual review</strong> with ${conf}% confidence. ${reasons.length?`Issues identified: ${reasons.join('; ')}.`:''} A clinical reviewer must evaluate this claim before a final adjudication decision can be made.`;
+  }
+
+  // Build action items
+  let actions=[];
+  if(dec==='approved'){
+    actions.push({num:1,color:'var(--approved)',bg:'var(--approved-bg)',text:'Proceed to payment processing — all checks passed.'});
+    actions.push({num:2,color:'var(--accent)',bg:'var(--accent-bg)',text:`File audit record <strong>${d.audit_trace_id}</strong> with the claim documentation.`});
+    actions.push({num:3,color:'var(--text3)',bg:'var(--bg3)',text:'No further clinical review required.'});
+  } else if(dec==='rejected'){
+    let n=1;
+    blockingRules.forEach(r=>{
+      if(r.rule_id.startsWith('COMPAT'))actions.push({num:n++,color:'var(--rejected)',bg:'var(--rejected-bg)',text:`Obtain supporting diagnosis documentation for <strong>${r.rule_id}</strong>: ${r.reason}`});
+      else if(r.rule_id.startsWith('COV'))actions.push({num:n++,color:'var(--rejected)',bg:'var(--rejected-bg)',text:`Coverage issue — ${r.reason}. Consider upgrading the patient's plan or seeking an exception.`});
+      else if(r.rule_id.startsWith('AGE'))actions.push({num:n++,color:'var(--rejected)',bg:'var(--rejected-bg)',text:`Age restriction — ${r.reason}. Document medical necessity for age exception if applicable.`});
+      else actions.push({num:n++,color:'var(--rejected)',bg:'var(--rejected-bg)',text:r.reason});
+    });
+    actions.push({num:n++,color:'var(--accent)',bg:'var(--accent-bg)',text:'Correct the identified issues and resubmit the claim.'});
+    actions.push({num:n,color:'var(--text3)',bg:'var(--bg3)',text:`Reference audit trail <strong>${d.audit_trace_id}</strong> when resubmitting.`});
+  } else {
+    let n=1;
+    reviewRules.forEach(r=>{
+      if(r.rule_id.startsWith('AUTH'))actions.push({num:n++,color:'var(--review)',bg:'var(--review-bg)',text:`Obtain prior authorization from payer for the procedure(s): ${r.reason}`});
+      else actions.push({num:n++,color:'var(--review)',bg:'var(--review-bg)',text:`Rule ${r.rule_id}: ${r.reason}`});
+    });
+    if(hasImgMismatch){
+      const mm=edgeCases.find(e=>e.type==='image_text_mismatch');
+      actions.push({num:n++,color:'var(--review)',bg:'var(--review-bg)',text:`Imaging/text mismatch detected — imaging suggests <strong>${mm?.image_signal}</strong> but clinical notes suggest <strong>${mm?.text_signal}</strong>. Radiologist review required.`});
+    }
+    edgeCases.filter(e=>e.type==='missing_diagnosis').forEach(e=>{
+      actions.push({num:n++,color:'var(--rejected)',bg:'var(--rejected-bg)',text:`Missing diagnosis codes — ${e.description}. Obtain ICD-10 documentation before resubmission.`});
+    });
+    actions.push({num:n,color:'var(--accent)',bg:'var(--accent-bg)',text:'Route to clinical reviewer queue. Do not process for payment until review is complete.'});
+  }
+
+  const actionsHtml=actions.map(a=>`
+    <li class="action-item" style="background:${a.bg};border-color:${a.color}22">
+      <div class="action-num" style="background:${a.bg};color:${a.color};border:1.5px solid ${a.color}">${a.num}</div>
+      <div>${a.text}</div>
+    </li>`).join('');
+
+  return `
+    <div class="report" style="border-color:${decBorder};background:${decBg}">
+      <div class="report-header">
+        <div class="report-icon" style="background:${decBg};border:1.5px solid ${decBorder};color:${decColor};font-size:1rem">${decIcon}</div>
+        <div>
+          <div class="report-title" style="color:${decColor}">${decTitle}</div>
+          <div class="report-sub">${conf}% confidence · ${d.claim_id}</div>
+        </div>
+      </div>
+      <div class="report-body"><p>${narrative}</p></div>
+    </div>
+
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:1.3rem;margin-bottom:1.4rem">
+      <div class="report-section-title">Clinical Findings</div>
+      <div>
+        <div class="finding-row"><div class="finding-label">Diagnoses</div><div class="finding-val">${icdList}</div></div>
+        <div class="finding-row"><div class="finding-label">Procedures</div><div class="finding-val">${cptList}</div></div>
+        <div class="finding-row"><div class="finding-label">Rules</div><div class="finding-val">${d.rule_evaluations?.length||0} evaluated · ${blockingRules.length} blocking · ${reviewRules.length} warnings</div></div>
+        <div class="finding-row"><div class="finding-label">Edge Cases</div><div class="finding-val">${edgeCases.length>0?edgeCases.map(e=>e.type.replace(/_/g,' ')).join(', '):'None detected'}</div></div>
+        <div class="finding-row"><div class="finding-label">Audit ID</div><div class="finding-val" style="font-family:var(--mono);font-size:.7rem">${d.audit_trace_id}</div></div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.3rem;margin-bottom:1.4rem">
+      <div class="report-section-title">Required Actions</div>
+      <ul class="action-list">${actionsHtml}</ul>
+    </div>`;
+}
+
+// ── Render result ──────────────────────────────────────────────────
+function renderResult(d, payload){
+  const dec=d.decision,conf=Math.round(d.confidence_score*100);
+  const col=dec==='approved'?'var(--approved)':dec==='rejected'?'var(--rejected)':'var(--review)';
+
+  const icd=(d.icd10_codes||[]).map(c=>`<div class="chip"><div class="cnum">${c.code}</div><div class="cdesc">${c.description}</div><div class="cconf-badge">${Math.round(c.confidence*100)}% conf</div></div>`).join('');
+  const cpt=(d.cpt_codes||[]).map(c=>`<div class="chip"><div class="cnum cpt">${c.code}</div><div class="cdesc">${c.description}</div><div class="cconf-badge">${Math.round(c.confidence*100)}% conf</div></div>`).join('');
+  const rules=(d.rule_evaluations||[]).map(r=>{
+    const ic=r.passed?'✓':r.action==='reject'?'✗':'!';
+    const rc=r.passed?'ri-ok':r.action==='reject'?'ri-rej':'ri-rev';
+    return`<div class="rr"><div class="ri ${rc}">${ic}</div><div><div class="rid">${r.rule_id}</div><div class="rreason">${r.reason}</div></div></div>`;
+  }).join('')||'<div style="color:var(--text3);font-size:.72rem;padding:8px 0">No rules evaluated — add CPT procedure codes to trigger rule evaluation</div>';
+  const edges=(d.edge_cases||[]).map(e=>`<div class="er"><div class="et">${e.type.replace(/_/g,' ')} · ${e.severity}</div><div class="ed">${e.description}</div>${e.image_signal?`<div class="ed" style="margin-top:4px;color:var(--review);font-weight:500">Imaging: ${e.image_signal} | Clinical text: ${e.text_signal} (mismatch: ${e.mismatch_score?.toFixed(2)})</div>`:''}<div class="ed" style="margin-top:4px;font-style:italic">→ ${e.recommendation||''}</div></div>`).join('')||'<div style="color:var(--text3);font-size:.72rem;padding:8px 0">No edge cases detected</div>';
+  const chain=(d.explainability?.reasoning_chain||[]).map(s=>`<div class="cs"><div class="csdot"></div><div><div class="csstage">${s.stage.replace(/_/g,' ')} · ${Math.round(s.confidence*100)}%</div><div class="csout">${s.outcome}</div></div></div>`).join('');
+
+  document.getElementById('rp').innerHTML=`
+    <div style="margin-bottom:1.4rem;padding-bottom:1.2rem;border-bottom:1px solid var(--border)">
+      <div class="rdec" style="color:${col}">${dec.replace(/_/g,' ')}</div>
+      <div class="rconf">${conf}% confidence · ${(d.rule_evaluations||[]).length} rules evaluated · ${(d.icd10_codes||[]).length} ICD-10 · ${(d.cpt_codes||[]).length} CPT</div>
+      <div class="rcid">${d.claim_id} · ${d.audit_trace_id}</div>
+    </div>
+
+    ${buildSummaryReport(d, payload)}
+
+    <div class="tabs">
+      <button class="tab active" onclick="swTab(this,'codes')">Codes</button>
+      <button class="tab" onclick="swTab(this,'rules')">Rules</button>
+      <button class="tab" onclick="swTab(this,'edges')">Edge Cases</button>
+      <button class="tab" onclick="swTab(this,'chain')">Reasoning</button>
+    </div>
+
+    <div class="tc active" id="tab-codes">
+      <div class="stitle">ICD-10 Diagnoses</div>
+      <div class="cg">${icd||'<div style="color:var(--text3);font-size:.75rem">No diagnosis codes mapped</div>'}</div>
+      <div class="stitle">CPT Procedures</div>
+      <div class="cg">${cpt||'<div style="color:var(--text3);font-size:.75rem">No procedure codes mapped</div>'}</div>
+    </div>
+    <div class="tc" id="tab-rules">
+      <div class="stitle">Policy Rule Evaluations</div>${rules}
+    </div>
+    <div class="tc" id="tab-edges">
+      <div class="stitle">Edge Case Detection</div>${edges}
+    </div>
+    <div class="tc" id="tab-chain">
+      <div class="stitle">Reasoning Chain</div>${chain}
+      ${(d.explainability?.risk_flags||[]).length?`
+        <div class="stitle" style="margin-top:1rem">Risk Flags</div>
+        ${d.explainability.risk_flags.map(f=>`<div class="er" style="background:var(--review-bg);border-color:var(--review-border)"><div class="et" style="color:var(--review)">${f}</div></div>`).join('')}
+      `:''}
+    </div>`;
+}
+
+function swTab(el,name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(`tab-${name}`)?.classList.add('active');
+}
+
+// Health check
+fetch(`${API}/health`).then(r=>r.json()).then(d=>{
+  document.getElementById('apiStatus').textContent=`API LIVE — ${d.rules_loaded} rules loaded`;
+  toast(`Connected — ${d.rules_loaded} policy rules loaded`,'ok');
+}).catch(()=>{
+  document.getElementById('apiStatus').textContent='API OFFLINE';
+  const dot=document.getElementById('statusDot');
+  dot.style.background='#c41c3a';dot.style.boxShadow='0 0 0 2px #fecdd3';dot.style.animation='none';
+  toast('Cannot connect — start the API with python start.py','err');
+});
+</script>
+</body>
+</html>

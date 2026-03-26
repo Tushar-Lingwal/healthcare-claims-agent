@@ -1,0 +1,167 @@
+[
+  {
+    "rule_id": "COMPAT-001",
+    "rule_name": "Knee replacement requires musculoskeletal diagnosis",
+    "description": "Total knee arthroplasty (CPT 27447) must have a supporting musculoskeletal or injury diagnosis (ICD-10 prefix M or S).",
+    "rule_type": "compatibility",
+    "conditions": {
+      "cpt_codes": ["27447"],
+      "required_icd_prefixes": ["M", "S"]
+    },
+    "action": "reject",
+    "severity": "critical"
+  },
+  {
+    "rule_id": "COMPAT-002",
+    "rule_name": "ACL reconstruction requires knee injury diagnosis",
+    "description": "Arthroscopic ACL repair (CPT 29888) must have a knee ligament injury diagnosis (ICD-10 prefix S83).",
+    "rule_type": "compatibility",
+    "conditions": {
+      "cpt_codes": ["29888"],
+      "required_icd_prefixes": ["S83"]
+    },
+    "action": "reject",
+    "severity": "critical"
+  },
+  {
+    "rule_id": "COMPAT-003",
+    "rule_name": "Cardiac catheterization requires cardiac diagnosis",
+    "description": "Left heart catheterization (CPT 93458) must have a cardiac diagnosis (ICD-10 prefix I).",
+    "rule_type": "compatibility",
+    "conditions": {
+      "cpt_codes": ["93458"],
+      "required_icd_prefixes": ["I"]
+    },
+    "action": "reject",
+    "severity": "critical"
+  },
+  {
+    "rule_id": "COMPAT-004",
+    "rule_name": "Coronary bypass requires coronary artery disease",
+    "description": "CABG (CPT 33533) must have a coronary artery disease diagnosis (ICD-10 prefix I2).",
+    "rule_type": "compatibility",
+    "conditions": {
+      "cpt_codes": ["33533"],
+      "required_icd_prefixes": ["I2"]
+    },
+    "action": "reject",
+    "severity": "critical"
+  },
+  {
+    "rule_id": "COMPAT-005",
+    "rule_name": "Chemotherapy requires neoplasm diagnosis",
+    "description": "Chemotherapy administration (CPT 96413) must have a neoplasm diagnosis (ICD-10 prefix C or D).",
+    "rule_type": "compatibility",
+    "conditions": {
+      "cpt_codes": ["96413"],
+      "required_icd_prefixes": ["C", "D"]
+    },
+    "action": "reject",
+    "severity": "critical"
+  },
+  {
+    "rule_id": "COMPAT-006",
+    "rule_name": "Mastectomy requires breast neoplasm diagnosis",
+    "description": "Mastectomy (CPT 19303) must have a breast neoplasm diagnosis (ICD-10 prefix C50 or D05).",
+    "rule_type": "compatibility",
+    "conditions": {
+      "cpt_codes": ["19303"],
+      "required_icd_prefixes": ["C50", "D05"]
+    },
+    "action": "reject",
+    "severity": "critical"
+  },
+  {
+    "rule_id": "COMPAT-007",
+    "rule_name": "Brain MRI requires neurological or oncological diagnosis",
+    "description": "Brain MRI (CPT 70551, 70553) must have a neurological, oncological, or dementia diagnosis (ICD-10 prefix C, D, G, or F0).",
+    "rule_type": "compatibility",
+    "conditions": {
+      "cpt_codes": ["70551", "70553"],
+      "required_icd_prefixes": ["C", "D", "G", "F0"]
+    },
+    "action": "reject",
+    "severity": "high"
+  },
+  {
+    "rule_id": "AUTH-001",
+    "rule_name": "MRI procedures require prior authorization",
+    "description": "MRI procedures (CPT 70553, 72148) require prior authorization from the payer before the claim can be approved.",
+    "rule_type": "prior_auth",
+    "conditions": {
+      "cpt_codes": ["70553", "72148", "70551", "72141", "73721"]
+    },
+    "action": "flag_review",
+    "severity": "high"
+  },
+  {
+    "rule_id": "AUTH-002",
+    "rule_name": "Joint replacement requires prior authorization",
+    "description": "Total knee (CPT 27447) and hip (CPT 27130) arthroplasty require prior authorization.",
+    "rule_type": "prior_auth",
+    "conditions": {
+      "cpt_codes": ["27447", "27130"]
+    },
+    "action": "flag_review",
+    "severity": "high"
+  },
+  {
+    "rule_id": "AUTH-003",
+    "rule_name": "Coronary bypass requires prior authorization",
+    "description": "Coronary artery bypass graft (CPT 33533) requires prior authorization.",
+    "rule_type": "prior_auth",
+    "conditions": {
+      "cpt_codes": ["33533"]
+    },
+    "action": "flag_review",
+    "severity": "high"
+  },
+  {
+    "rule_id": "AGE-001",
+    "rule_name": "Colonoscopy screening age restriction",
+    "description": "Routine screening colonoscopy (CPT 45378) is covered only for patients aged 45 and above.",
+    "rule_type": "age_restriction",
+    "conditions": {
+      "cpt_codes": ["45378"],
+      "minimum_age": 45
+    },
+    "action": "flag_review",
+    "severity": "medium"
+  },
+  {
+    "rule_id": "AGE-002",
+    "rule_name": "Joint replacement pediatric restriction",
+    "description": "Joint replacement (CPT 27447, 27130) is not covered for patients under age 18.",
+    "rule_type": "age_restriction",
+    "conditions": {
+      "cpt_codes": ["27447", "27130"],
+      "minimum_age": 18
+    },
+    "action": "reject",
+    "severity": "critical"
+  },
+  {
+    "rule_id": "COV-001",
+    "rule_name": "BASIC plan excludes elective joint replacement",
+    "description": "BASIC insurance plan does not cover elective joint replacement procedures (CPT 27447, 27130).",
+    "rule_type": "coverage",
+    "conditions": {
+      "cpt_codes": ["27447", "27130"],
+      "excluded_plans": ["basic"]
+    },
+    "action": "reject",
+    "severity": "critical"
+  },
+  {
+    "rule_id": "COV-002",
+    "rule_name": "BASIC plan excludes advanced imaging",
+    "description": "BASIC insurance plan does not cover advanced MRI imaging (CPT 70553, 72148).",
+    "rule_type": "coverage",
+    "conditions": {
+      "cpt_codes": ["70553", "72148"],
+      "excluded_plans": ["basic"]
+    },
+    "action": "reject",
+    "severity": "critical"
+  }
+]

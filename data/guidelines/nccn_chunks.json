@@ -1,0 +1,72 @@
+[
+  {
+    "passage_id": "NCCN-CNS-001",
+    "source": "NCCN Guidelines — Central Nervous System Cancers v1.2024",
+    "content": "Glioblastoma (GBM, WHO Grade IV) is the most common and aggressive primary brain tumor in adults. Standard of care for newly diagnosed GBM includes maximal safe surgical resection followed by concurrent temozolomide chemotherapy and radiation therapy (Stupp protocol). MRI with and without contrast (CPT 70553) is required for diagnosis, surgical planning, and post-treatment surveillance. Prior authorization is required for MRI in most commercial insurance plans.",
+    "icd_relevant": ["C71.9", "C71.1", "C71.2"],
+    "cpt_relevant": ["70553", "96413", "77386"]
+  },
+  {
+    "passage_id": "NCCN-CNS-002",
+    "source": "NCCN Guidelines — Central Nervous System Cancers v1.2024",
+    "content": "For patients with WHO Grade II or III gliomas, treatment decisions should be based on molecular markers including IDH mutation status and 1p/19q codeletion. Surveillance MRI is recommended every 3 months for the first 2 years following treatment, then every 6 months thereafter. Medical necessity for brain MRI in patients with confirmed glioma diagnosis (ICD-10 C71.x) is well-established and should be approved with supporting clinical documentation.",
+    "icd_relevant": ["C71.9"],
+    "cpt_relevant": ["70553", "70551"]
+  },
+  {
+    "passage_id": "NCCN-CNS-003",
+    "source": "NCCN Guidelines — Central Nervous System Cancers v1.2024",
+    "content": "Meningiomas (ICD-10 D32.9 for benign, C70.9 for malignant) account for approximately 30% of all primary brain tumors. WHO Grade I meningiomas may be observed with serial MRI if asymptomatic. Surgery is indicated for symptomatic lesions, rapid growth, or WHO Grade II/III. Stereotactic radiosurgery (CPT 61796) is an alternative to surgery for small to medium meningiomas. MRI brain with contrast (CPT 70553) is the imaging modality of choice for diagnosis and surveillance.",
+    "icd_relevant": ["D32.9", "C70.9"],
+    "cpt_relevant": ["70553", "61796", "61510"]
+  },
+  {
+    "passage_id": "NCCN-CNS-004",
+    "source": "NCCN Guidelines — Central Nervous System Cancers v1.2024",
+    "content": "Pituitary adenomas (ICD-10 D35.2) are classified as microadenomas (<10mm) or macroadenomas (≥10mm). MRI of the pituitary with and without gadolinium contrast is the primary imaging modality. Transsphenoidal surgery is first-line treatment for most functioning adenomas and large non-functioning adenomas causing mass effect. Medical management with dopamine agonists (e.g. cabergoline) is preferred for prolactinomas. Radiation therapy is reserved for residual or recurrent disease.",
+    "icd_relevant": ["D35.2", "C75.1"],
+    "cpt_relevant": ["70553", "61546"]
+  },
+  {
+    "passage_id": "NCCN-CNS-005",
+    "source": "NCCN Guidelines — Central Nervous System Cancers v1.2024",
+    "content": "Brain metastases (ICD-10 C79.31) develop in 20-40% of cancer patients and are more common than primary brain tumors. Treatment options include whole brain radiation therapy, stereotactic radiosurgery (CPT 61796), surgical resection, or systemic therapy depending on the number of lesions, primary histology, and patient performance status. MRI brain with contrast (CPT 70553) is required for diagnosis and treatment planning and represents standard of care.",
+    "icd_relevant": ["C79.31"],
+    "cpt_relevant": ["70553", "61796", "77386"]
+  },
+  {
+    "passage_id": "CMS-NCD-001",
+    "source": "CMS National Coverage Determination — MRI (220.2)",
+    "content": "MRI is covered when ordered by a physician for diagnosis and management of conditions where other diagnostic procedures are inadequate or inferior, or where MRI provides superior diagnostic information. Brain MRI is covered for evaluation of intracranial neoplasms, dementia, cerebrovascular disease, and other neurological disorders. Documentation must include clinical indication, relevant symptoms or history, and prior imaging results when available. ICD-10 codes C71.x, G30.x, F03.x, and G31.x support medical necessity for brain MRI.",
+    "icd_relevant": ["C71.9", "G30.9", "F03.90", "G31.84"],
+    "cpt_relevant": ["70553", "70551"]
+  },
+  {
+    "passage_id": "CMS-LCD-001",
+    "source": "CMS Local Coverage Determination — Chemotherapy (L35396)",
+    "content": "Chemotherapy administration (CPT 96413) is covered for treatment of malignant neoplasms when supported by a confirmed tissue diagnosis. ICD-10 codes in the C category (malignant neoplasms) are required as supporting diagnoses. The claim must document the chemotherapy agent, dose, route of administration, and treating diagnosis. Claims submitted without a supporting neoplasm diagnosis (C00-C96 or D00-D09) will be denied as lacking medical necessity.",
+    "icd_relevant": ["C71.9", "C50.919", "C18.9"],
+    "cpt_relevant": ["96413"]
+  },
+  {
+    "passage_id": "NCCN-DEMEN-001",
+    "source": "NCCN Guidelines — Senior Adult Oncology v2.2024",
+    "content": "Mild cognitive impairment (MCI, ICD-10 G31.84) and dementia (ICD-10 F03.90) are common comorbidities in oncology patients and may affect treatment tolerance and decision-making capacity. Neuropsychological evaluation is recommended for patients with suspected cognitive decline before initiating chemotherapy. Brain MRI is indicated to rule out structural causes (tumor, vascular disease) of cognitive symptoms. Alzheimer disease (ICD-10 G30.9) requires formal diagnostic criteria including cognitive testing and exclusion of other causes.",
+    "icd_relevant": ["G31.84", "F03.90", "G30.9"],
+    "cpt_relevant": ["70553", "96132"]
+  },
+  {
+    "passage_id": "CMS-PRIOR-AUTH-001",
+    "source": "CMS Prior Authorization Program — Selected Procedures",
+    "content": "Effective January 2024, prior authorization is required for the following outpatient services under Medicare Advantage and certain commercial plans: MRI procedures (CPT 70551-70559, 72141-72158, 73721-73723), joint replacement surgery (CPT 27447, 27130), and coronary artery bypass grafting (CPT 33533). Prior authorization requests must include the clinical indication, supporting diagnosis codes, treating physician information, and any prior imaging or conservative treatment attempted. Failure to obtain prior authorization may result in claim denial.",
+    "icd_relevant": [],
+    "cpt_relevant": ["70553", "70551", "72148", "27447", "27130", "33533"]
+  },
+  {
+    "passage_id": "AHA-CARD-001",
+    "source": "AHA/ACC Guideline for the Diagnosis and Management of Heart Failure",
+    "content": "Coronary artery bypass grafting (CABG, CPT 33533) is recommended (Class I, Level of Evidence A) for patients with significant left main coronary artery stenosis or multivessel coronary artery disease (ICD-10 I25.10) and reduced ejection fraction. Prior to CABG, coronary angiography (CPT 93458) is required to define the anatomy and confirm the indication. The supporting ICD-10 diagnosis must include I20-I25 range codes (ischemic heart disease) for the procedure to meet medical necessity criteria.",
+    "icd_relevant": ["I25.10", "I21.9"],
+    "cpt_relevant": ["33533", "93458"]
+  }
+]
