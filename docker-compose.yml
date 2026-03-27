@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+
+  # ── PostgreSQL database ──────────────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: claimiq_db
+    environment:
+      POSTGRES_DB:       claimiq
+      POSTGRES_USER:     claimiq
+      POSTGRES_PASSWORD: claimiq_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U claimiq"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── ClaimIQ API ──────────────────────────────────────────────────
+  api:
+    build: .
+    container_name: claimiq_api
+    ports:
+      - "8000:8000"
+    environment:
+      # Database
+      DATABASE_URL:            postgresql://claimiq:claimiq_dev_password@db:5432/claimiq
+      # Security
+      PHI_VAULT_KEY:           ${PHI_VAULT_KEY}
+      VAULT_BACKEND:           postgres
+      AUDIT_BACKEND:           postgres
+      # LLM
+      LLM_PROVIDER:            ${LLM_PROVIDER:-stub}
+      GROQ_API_KEY:            ${GROQ_API_KEY:-}
+      GEMINI_API_KEY:          ${GEMINI_API_KEY:-}
+      ANTHROPIC_API_KEY:       ${ANTHROPIC_API_KEY:-}
+      # RAG
+      RAG_BACKEND:             local
+      # App
+      ENV:                     development
+      SECRET_KEY:              ${SECRET_KEY:-dev-secret-change-in-production}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
