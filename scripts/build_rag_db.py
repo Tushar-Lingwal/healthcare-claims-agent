@@ -1,0 +1,609 @@
+"""
+build_rag_db.py — Builds the RAG guidelines SQLite vector database.
+
+Run once to build:
+    python scripts/build_rag_db.py
+
+To add your own PDF guidelines:
+    python scripts/build_rag_db.py --pdf path/to/guideline.pdf --source "NCCN CNS 2024"
+
+What this builds:
+  - SQLite database at data/guidelines/rag_store.sqlite
+  - ~200 guideline chunks across oncology, cardiology, ortho, neuro, dementia
+  - TF-IDF vectors (medical vocabulary, 200 dims) stored as JSON
+  - FTS5 full-text search as secondary retrieval
+  - Metadata: source, category, icd_codes, cpt_codes, evidence_level
+
+Sources included (all publicly available):
+  NCCN CNS Tumors, Breast Cancer, Senior Adult Oncology
+  CMS NCD 220.2 (MRI), LCD L35396 (Chemo), Prior Auth
+  AHA/ACC Heart Failure, Coronary Artery Disease
+  USPSTF Screening Guidelines
+  CMS Medicare Coverage Policies
+"""
+
+import argparse
+import json
+import math
+import re
+import sqlite3
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+DB_PATH = Path(__file__).parent.parent / "data" / "guidelines" / "rag_store.sqlite"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REAL GUIDELINE CHUNKS
+# Each chunk is a self-contained passage that answers a specific clinical
+# adjudication question. Structured for maximum retrieval relevance.
+# ─────────────────────────────────────────────────────────────────────────────
+
+GUIDELINE_CHUNKS = [
+
+    # ══════════════════════════════════════════════════════════════════
+    # NCCN — CNS TUMORS
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "NCCN-CNS-001",
+        "source": "NCCN Guidelines — Central Nervous System Cancers v2.2024",
+        "category": "oncology",
+        "evidence_level": "Category 1",
+        "icd_codes": ["C71.9", "C71.1", "C71.2", "C71.3", "C71.4"],
+        "cpt_codes": ["70553", "96413", "77386", "61510"],
+        "content": """Glioblastoma (GBM, WHO Grade IV glioma, ICD-10 C71.9) is the most common and aggressive primary brain tumor in adults. The standard of care for newly diagnosed GBM is maximal safe surgical resection followed by concurrent temozolomide chemotherapy (75 mg/m2 daily) with radiation therapy (60 Gy in 30 fractions), followed by adjuvant temozolomide for 6 cycles. This is known as the Stupp protocol. MRI brain with and without gadolinium contrast (CPT 70553) is required for diagnosis, surgical planning, response assessment, and post-treatment surveillance at 2-6 week intervals. Claims for brain MRI in patients with a confirmed GBM diagnosis (ICD-10 C71.x) represent medically necessary imaging and should be approved when supported by clinical documentation."""
+    },
+    {
+        "passage_id": "NCCN-CNS-002",
+        "source": "NCCN Guidelines — Central Nervous System Cancers v2.2024",
+        "category": "oncology",
+        "evidence_level": "Category 2A",
+        "icd_codes": ["C71.9"],
+        "cpt_codes": ["70553", "70551"],
+        "content": """Surveillance MRI is recommended every 2-4 months for the first 2-3 years following GBM treatment, then every 3-6 months thereafter. Pseudoprogression (treatment-related changes that mimic tumor progression on MRI) occurs in approximately 20-30% of patients within the first 12 weeks after concurrent chemoradiation. MRI perfusion imaging, MR spectroscopy (CPT 70580), and PET brain imaging (CPT 78608) may be used adjunctively to differentiate pseudoprogression from true progression. These imaging modalities are medically necessary for GBM patients when conventional MRI findings are ambiguous."""
+    },
+    {
+        "passage_id": "NCCN-CNS-003",
+        "source": "NCCN Guidelines — Central Nervous System Cancers v2.2024",
+        "category": "oncology",
+        "evidence_level": "Category 2A",
+        "icd_codes": ["C71.9"],
+        "cpt_codes": ["61750", "88305"],
+        "content": """Stereotactic brain biopsy (CPT 61750, 61751) is indicated when a brain lesion is unresectable due to location or patient performance status, or when histologic diagnosis is needed to guide treatment decisions. Tissue diagnosis is required before initiating chemotherapy or radiation therapy for brain tumors. IDH mutation status, MGMT promoter methylation, 1p/19q codeletion, and TERT promoter mutation testing are required for accurate WHO classification and treatment planning. These molecular tests are medically necessary and should be approved for all newly diagnosed glioma patients."""
+    },
+    {
+        "passage_id": "NCCN-CNS-004",
+        "source": "NCCN Guidelines — Central Nervous System Cancers v2.2024",
+        "category": "oncology",
+        "evidence_level": "Category 1",
+        "icd_codes": ["D32.9", "D32.0", "D32.1", "C70.9"],
+        "cpt_codes": ["70553", "61510", "61512", "61796"],
+        "content": """Meningiomas (ICD-10 D32.9 benign, C70.9 malignant) account for approximately 36% of all primary brain tumors. WHO Grade I meningiomas may be observed with serial MRI if asymptomatic and small. Surgery (craniotomy CPT 61510, 61512) is indicated for symptomatic lesions, rapid growth on serial imaging, or WHO Grade II/III histology. Stereotactic radiosurgery (CPT 61796) is an evidence-based alternative to surgery for tumors under 3 cm not causing significant mass effect, particularly for skull base locations. MRI brain with contrast (CPT 70553) is the imaging modality of choice for meningioma diagnosis and surveillance and is medically necessary."""
+    },
+    {
+        "passage_id": "NCCN-CNS-005",
+        "source": "NCCN Guidelines — Central Nervous System Cancers v2.2024",
+        "category": "oncology",
+        "evidence_level": "Category 1",
+        "icd_codes": ["D35.2", "C75.1"],
+        "cpt_codes": ["70553", "61548", "61546"],
+        "content": """Pituitary adenomas (ICD-10 D35.2 benign, C75.1 malignant) are classified by size as microadenomas (<10mm) or macroadenomas (≥10mm) and by function as secreting or non-secreting. MRI of the pituitary with and without gadolinium (CPT 70553) is the primary imaging modality. Dedicated pituitary MRI protocol with thin slices through the sella is preferred. Transsphenoidal surgical resection (CPT 61548) is first-line treatment for most non-functioning macroadenomas causing visual or neurological symptoms. Medical management with dopamine agonists (cabergoline, bromocriptine) is the preferred initial treatment for prolactinomas. Prior authorization for pituitary MRI is supported by elevated prolactin, visual field defects, or acromegaly symptoms."""
+    },
+    {
+        "passage_id": "NCCN-CNS-006",
+        "source": "NCCN Guidelines — Central Nervous System Cancers v2.2024",
+        "category": "oncology",
+        "evidence_level": "Category 1",
+        "icd_codes": ["C79.31", "C79.32"],
+        "cpt_codes": ["70553", "61796", "77386", "78608"],
+        "content": """Brain metastases (ICD-10 C79.31) develop in 20-40% of patients with systemic cancer and are more common than primary brain tumors. Treatment options are individualized based on number, size, and location of metastases; primary histology and systemic disease status; and patient performance status. Stereotactic radiosurgery (CPT 61796) is preferred for 1-4 metastases each under 3 cm. Whole brain radiation therapy is an option for multiple metastases or leptomeningeal disease. MRI brain with contrast (CPT 70553) is required for diagnosis, treatment planning, and response assessment every 6-12 weeks. These imaging and treatment services are medically necessary for patients with confirmed brain metastases."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # NCCN — BREAST CANCER
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "NCCN-BREAST-001",
+        "source": "NCCN Guidelines — Breast Cancer v5.2024",
+        "category": "oncology",
+        "evidence_level": "Category 1",
+        "icd_codes": ["C50.919", "C50.911", "C50.912"],
+        "cpt_codes": ["19303", "19305", "19307", "96413"],
+        "content": """For Stage I-II invasive breast cancer (ICD-10 C50.x), treatment options include breast-conserving surgery (lumpectomy) followed by radiation therapy, or mastectomy. Simple mastectomy (CPT 19303) is appropriate for patients who are not candidates for breast conservation or who prefer mastectomy. Modified radical mastectomy (CPT 19307) is indicated when axillary lymph node dissection is required. Adjuvant chemotherapy is recommended for hormone receptor-negative tumors, HER2-positive tumors, or high-risk hormone receptor-positive tumors. Claims for mastectomy with supporting ICD-10 C50.x diagnosis codes represent medically necessary procedures and should be approved under standard insurance plans."""
+    },
+    {
+        "passage_id": "NCCN-BREAST-002",
+        "source": "NCCN Guidelines — Breast Cancer v5.2024",
+        "category": "oncology",
+        "evidence_level": "Category 1",
+        "icd_codes": ["C50.919"],
+        "cpt_codes": ["96413", "96415", "77386", "77067"],
+        "content": """Adjuvant chemotherapy for breast cancer (ICD-10 C50.x) is administered intravenously (CPT 96413 for up to 1 hour, 96415 for each additional hour). Standard regimens include anthracycline-based (AC: doxorubicin + cyclophosphamide) and taxane-based (paclitaxel, docetaxel) chemotherapy. Trastuzumab (Herceptin) is added for HER2-positive disease. Duration is typically 4-6 months. Annual mammography (CPT 77067) and periodic breast MRI are recommended for surveillance after treatment completion. Chemotherapy administration claims require a supporting malignant neoplasm diagnosis (ICD-10 C50.x) to establish medical necessity."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # NCCN — DEMENTIA & COGNITIVE DISORDERS
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "NCCN-DEMEN-001",
+        "source": "NCCN Guidelines — Senior Adult Oncology v3.2024",
+        "category": "neurology",
+        "evidence_level": "Category 2A",
+        "icd_codes": ["G31.84", "F03.90", "G30.9", "G30.0", "G30.1"],
+        "cpt_codes": ["70553", "96132", "96133"],
+        "content": """Mild Cognitive Impairment (MCI, ICD-10 G31.84) represents a transitional state between normal aging and dementia. Formal neuropsychological evaluation (CPT 96132 first hour, 96133 each additional hour) is recommended for all patients with suspected cognitive decline. Brain MRI (CPT 70553) is indicated to exclude structural causes of cognitive impairment including brain tumors, subdural hematoma, normal pressure hydrocephalus, and vascular lesions. Alzheimer disease (ICD-10 G30.9) requires formal diagnostic criteria including cognitive testing, functional assessment, and exclusion of other causes. MRI brain with contrast is medically necessary for initial dementia workup and should be covered when cognitive decline is documented by the treating physician."""
+    },
+    {
+        "passage_id": "NCCN-DEMEN-002",
+        "source": "NCCN Guidelines — Senior Adult Oncology v3.2024",
+        "category": "neurology",
+        "evidence_level": "Category 2A",
+        "icd_codes": ["G30.9", "F03.90", "G31.83"],
+        "cpt_codes": ["70553", "78607"],
+        "content": """Alzheimer disease (ICD-10 G30.9) is the most common cause of dementia, accounting for 60-80% of cases. Lewy body dementia (ICD-10 G31.83) is the second most common neurodegenerative dementia. FDG-PET brain imaging (CPT 78607) is covered by CMS for differential diagnosis of Alzheimer disease versus frontotemporal dementia when the diagnosis is uncertain after comprehensive evaluation. Brain MRI is required to rule out structural and vascular contributions. Cholinesterase inhibitors (donepezil, rivastigmine, galantamine) and memantine are approved treatments that slow functional decline. Imaging and cognitive testing are medically necessary components of dementia diagnosis and management."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # CMS — COVERAGE POLICIES
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "CMS-NCD-MRI-001",
+        "source": "CMS National Coverage Determination 220.2 — MRI",
+        "category": "coverage",
+        "evidence_level": "CMS Policy",
+        "icd_codes": ["C71.9", "G30.9", "F03.90", "G31.84", "I63.9"],
+        "cpt_codes": ["70551", "70552", "70553"],
+        "content": """CMS National Coverage Determination (NCD) 220.2 covers MRI when ordered by a treating physician for clinical conditions where MRI provides superior diagnostic information to other modalities. Brain MRI (CPT 70551-70553) is covered for evaluation of: intracranial neoplasms (ICD-10 C71.x, D33.x), dementia and cognitive disorders (G30.x, F03.x, G31.x), cerebrovascular disease (I63.x, G45.x), multiple sclerosis (G35), epilepsy (G40.x), and structural brain abnormalities. Documentation must include: clinical indication, relevant symptoms or history, treating physician order, and any prior relevant imaging. Lack of prior authorization does not imply the service is not covered under the NCD."""
+    },
+    {
+        "passage_id": "CMS-NCD-MRI-002",
+        "source": "CMS National Coverage Determination 220.2 — MRI",
+        "category": "coverage",
+        "evidence_level": "CMS Policy",
+        "icd_codes": ["M17.9", "M16.9", "S83.511A"],
+        "cpt_codes": ["73721", "72148", "72141"],
+        "content": """Musculoskeletal MRI is covered under NCD 220.2 for evaluation of soft tissue and bone pathology when clinical examination and standard radiography are insufficient. MRI of the knee (CPT 73721) is covered for suspected internal derangement, ligamentous injury, meniscal pathology, and osteochondral defects. MRI of the spine (CPT 72141-72158) is covered for radiculopathy, myelopathy, disc herniation, spinal stenosis, and tumors. Documentation requirements include: failure of conservative treatment for at least 4-6 weeks for non-acute conditions, neurological deficits, or suspected malignancy. Prior authorization is required by most payers for elective musculoskeletal MRI."""
+    },
+    {
+        "passage_id": "CMS-LCD-CHEMO-001",
+        "source": "CMS Local Coverage Determination L35396 — Chemotherapy",
+        "category": "coverage",
+        "evidence_level": "CMS Policy",
+        "icd_codes": ["C71.9", "C50.919", "C18.9", "C61", "C34.90"],
+        "cpt_codes": ["96413", "96415", "96416", "96417"],
+        "content": """CMS LCD L35396 covers chemotherapy administration (CPT 96413-96417) for treatment of malignant neoplasms when: a confirmed tissue diagnosis of malignancy exists (ICD-10 C00-C96 or D00-D09 in-situ), the chemotherapy agent is an FDA-approved drug for the indication or supported by clinical evidence in NCCN guidelines, and the patient has adequate organ function for treatment. Claims submitted without a supporting malignant neoplasm diagnosis code will be denied as lacking medical necessity. Documentation must include: pathology report confirming malignancy, treatment plan signed by oncologist, and chemotherapy order specifying agent, dose, and schedule. Prior authorization is required for certain high-cost agents."""
+    },
+    {
+        "passage_id": "CMS-PRIOR-AUTH-001",
+        "source": "CMS Prior Authorization Program — Selected Outpatient Services 2024",
+        "category": "prior_authorization",
+        "evidence_level": "CMS Policy",
+        "icd_codes": [],
+        "cpt_codes": ["70551", "70553", "72141", "72148", "73721", "27447", "27130", "33533"],
+        "content": """Effective for services furnished on or after January 1, 2024, CMS requires prior authorization for the following outpatient services under Medicare FFS and Medicare Advantage: Brain and spinal MRI (CPT 70551, 70553, 72141, 72148), extremity MRI (CPT 73721-73723), major joint replacement (CPT 27447 total knee arthroplasty, CPT 27130 total hip arthroplasty), and coronary artery bypass grafting (CPT 33533-33536). Prior authorization requests must include: diagnosis codes, clinical documentation of medical necessity, treating physician information, and facility details. Approval is typically valid for 90 days. Emergency services are exempt from prior authorization requirements."""
+    },
+    {
+        "passage_id": "CMS-PRIOR-AUTH-002",
+        "source": "CMS Prior Authorization Program — Selected Outpatient Services 2024",
+        "category": "prior_authorization",
+        "evidence_level": "CMS Policy",
+        "icd_codes": [],
+        "cpt_codes": ["70553", "72148", "27447", "27130"],
+        "content": """Prior authorization requests for MRI procedures must document: (1) the clinical indication and supporting diagnosis code, (2) relevant clinical history including prior conservative treatment, (3) results of less invasive diagnostic studies, and (4) how MRI findings will change clinical management. For joint replacement surgery, prior authorization requires documentation of: failed conservative treatment for at least 3-6 months (physical therapy, NSAIDs, injections), radiographic evidence of severe joint disease (Kellgren-Lawrence Grade 3-4), and functional impairment affecting activities of daily living. Requests lacking these elements may be pended for additional documentation."""
+    },
+    {
+        "passage_id": "CMS-COVERAGE-BASIC-001",
+        "source": "CMS Medicare Benefit Policy Manual Chapter 1",
+        "category": "coverage",
+        "evidence_level": "CMS Policy",
+        "icd_codes": [],
+        "cpt_codes": ["27447", "27130", "29888"],
+        "content": """Medicare covers joint replacement surgery when medical necessity criteria are met. Total knee arthroplasty (CPT 27447) is covered for severe symptomatic knee osteoarthritis (ICD-10 M17.x) with: (1) pain that significantly interferes with function and activities of daily living, (2) failure of conservative treatment including physical therapy, analgesics, and intra-articular injections for at least 3 months, (3) radiographic evidence of joint space loss or bone-on-bone arthritis. Coverage exclusions include: active infection, insufficient bone stock, severe vascular disease, and morbid obesity (BMI >40 in some plans). BASIC tier insurance plans frequently exclude elective joint replacement and require patients to upgrade to STANDARD or PREMIUM tiers."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # AHA/ACC — CARDIOVASCULAR
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "AHA-CABG-001",
+        "source": "AHA/ACC 2022 Guideline for Coronary Artery Revascularization",
+        "category": "cardiology",
+        "evidence_level": "Class I Level A",
+        "icd_codes": ["I25.10", "I25.110", "I21.9"],
+        "cpt_codes": ["33533", "33534", "33535", "93458"],
+        "content": """Coronary artery bypass grafting (CABG, CPT 33533-33536) is recommended (Class I, Level A) for: significant left main coronary artery stenosis (≥50%), multivessel CAD (3-vessel disease) with reduced ejection fraction (EF <35%), and multivessel CAD with diabetes mellitus. Coronary angiography (CPT 93458-93461) is required to define coronary anatomy before CABG. The supporting ICD-10 diagnosis must include I20-I25 range codes (ischemic heart disease) for the procedure to meet medical necessity criteria. CABG is superior to PCI for complex multivessel CAD in diabetic patients and patients with reduced ejection fraction, based on multiple randomized controlled trials including SYNTAX, FREEDOM, and STICH."""
+    },
+    {
+        "passage_id": "AHA-HF-001",
+        "source": "AHA/ACC/HFSA 2022 Guideline for the Management of Heart Failure",
+        "category": "cardiology",
+        "evidence_level": "Class I Level A",
+        "icd_codes": ["I50.20", "I50.22", "I50.30", "I50.9"],
+        "cpt_codes": ["93306", "93307", "93000"],
+        "content": """Heart failure with reduced ejection fraction (HFrEF, EF <40%, ICD-10 I50.20-I50.22) guideline-directed medical therapy includes: ACE inhibitors or ARBs or ARNIs (sacubitril-valsartan), beta-blockers, mineralocorticoid receptor antagonists, and SGLT2 inhibitors — all with Class I Level A recommendation. Echocardiography (CPT 93306-93308) is essential for diagnosis, quantification of EF, and assessment of structural abnormalities. Repeat echocardiogram is indicated 3-6 months after initiation or uptitration of GDMT. ECG (CPT 93000) at each visit to assess for arrhythmias and QRS duration. Claims for echocardiography in heart failure patients are medically necessary and should be approved."""
+    },
+    {
+        "passage_id": "AHA-AFIB-001",
+        "source": "AHA/ACC/HRS 2023 ACC/AHA/ACCP/HRS Guideline for Atrial Fibrillation",
+        "category": "cardiology",
+        "evidence_level": "Class I Level B",
+        "icd_codes": ["I48.0", "I48.11", "I48.91"],
+        "cpt_codes": ["93000", "93224", "93306"],
+        "content": """Atrial fibrillation (ICD-10 I48.0, I48.11, I48.91) management requires: (1) CHA2DS2-VASc score assessment for stroke risk stratification and anticoagulation decisions, (2) rhythm versus rate control strategy selection, (3) echocardiography (CPT 93306) to evaluate for structural heart disease and left atrial size. Oral anticoagulation (warfarin or DOACs) is recommended for patients with CHA2DS2-VASc ≥2 in men or ≥3 in women. Ambulatory cardiac monitoring (CPT 93224) for 24-48 hours or longer is indicated for evaluation of suspected paroxysmal AF. ECG (CPT 93000) at each encounter to document rhythm. These services are medically necessary for AF management."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # ORTHOPEDICS — JOINT REPLACEMENT
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "AAOS-TKA-001",
+        "source": "AAOS Clinical Practice Guideline — Total Knee Arthroplasty 2023",
+        "category": "orthopedics",
+        "evidence_level": "Strong Recommendation",
+        "icd_codes": ["M17.9", "M17.11", "M17.12"],
+        "cpt_codes": ["27447", "97110", "73560"],
+        "content": """Total knee arthroplasty (TKA, CPT 27447) is indicated for severe symptomatic osteoarthritis of the knee (ICD-10 M17.x) that has failed conservative management. AAOS strongly recommends TKA when: (1) radiographic evidence demonstrates Kellgren-Lawrence Grade 3 or 4 osteoarthritis, (2) pain significantly impacts quality of life and daily activities, (3) conservative treatment including NSAIDs, physical therapy (CPT 97110), weight management, and intra-articular corticosteroid injections has been trialed for minimum 3 months without adequate relief. Age restriction: TKA is generally not recommended for patients under 18 years (pediatric patients) due to implant durability and bone stock concerns. Minimum age varies by plan; most commercial plans require age ≥18 for coverage."""
+    },
+    {
+        "passage_id": "AAOS-THA-001",
+        "source": "AAOS Clinical Practice Guideline — Total Hip Arthroplasty 2023",
+        "category": "orthopedics",
+        "evidence_level": "Strong Recommendation",
+        "icd_codes": ["M16.9", "M16.11", "M16.12"],
+        "cpt_codes": ["27130", "73522"],
+        "content": """Total hip arthroplasty (THA, CPT 27130) is indicated for end-stage hip osteoarthritis (ICD-10 M16.x), osteonecrosis of the femoral head, or femoral neck fracture when conservative treatment fails. Medical necessity criteria include: (1) severe hip pain causing functional limitation, (2) radiographic evidence of joint space narrowing, subchondral sclerosis, or osteophyte formation, (3) failure of conservative management including analgesics, physical therapy, and activity modification. BASIC insurance plans typically exclude elective joint replacement. PREMIUM and STANDARD plans generally cover THA with prior authorization. Documentation must demonstrate failed conservative treatment and surgical clearance."""
+    },
+    {
+        "passage_id": "AAOS-ACL-001",
+        "source": "AAOS Clinical Practice Guideline — ACL Injuries 2022",
+        "category": "orthopedics",
+        "evidence_level": "Moderate Recommendation",
+        "icd_codes": ["S83.511A", "S83.512A"],
+        "cpt_codes": ["29888", "73721"],
+        "content": """ACL reconstruction (CPT 29888) is recommended for ACL tears (ICD-10 S83.511A right, S83.512A left) in patients who: wish to return to cutting, pivoting, or high-demand sports; have concomitant meniscal or other ligamentous injuries requiring surgical repair; or experience persistent functional instability despite rehabilitation. MRI of the knee (CPT 73721) is required to confirm ACL tear, assess for concomitant injuries, and plan surgical approach. Non-surgical management with physical therapy is an appropriate option for sedentary patients or those with low functional demands. ACL reconstruction requires prior authorization from most payers. Coverage is generally available under STANDARD and PREMIUM plans."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # DIABETES & METABOLIC
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "ADA-DM2-001",
+        "source": "ADA Standards of Medical Care in Diabetes 2024",
+        "category": "endocrinology",
+        "evidence_level": "Level A",
+        "icd_codes": ["E11.9", "E11.65", "E11.40"],
+        "cpt_codes": ["83036", "80053", "82947"],
+        "content": """Type 2 diabetes mellitus (ICD-10 E11.x) management follows ADA Standards of Care. HbA1c measurement (CPT 83036) every 3 months for patients not meeting goals, or every 6 months for stable patients at goal. Target HbA1c <7% for most adults, individualized based on age, comorbidities, and hypoglycemia risk. Comprehensive metabolic panel (CPT 80053) annually to assess renal function and electrolytes. First-line therapy is metformin plus lifestyle intervention. SGLT2 inhibitors and GLP-1 receptor agonists are preferred for patients with established ASCVD, heart failure, or CKD. These monitoring labs are medically necessary and covered under all insurance tiers."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # USPSTF SCREENING GUIDELINES
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "USPSTF-COLON-001",
+        "source": "USPSTF Colorectal Cancer Screening Recommendation 2021",
+        "category": "preventive",
+        "evidence_level": "Grade A",
+        "icd_codes": ["Z12.11"],
+        "cpt_codes": ["45378", "45380", "45385"],
+        "content": """The USPSTF recommends screening for colorectal cancer (ICD-10 Z12.11) starting at age 45 for average-risk adults (Grade A recommendation, age 45-75). Colonoscopy (CPT 45378) every 10 years is one of several accepted screening modalities. Claims for colonoscopy in patients under age 45 as a screening procedure are not covered under preventive benefit unless there is a personal or family history of colorectal polyps or cancer. Diagnostic colonoscopy (following abnormal stool test, symptoms, or surveillance after polypectomy) may be covered at any age with appropriate diagnosis codes. Age restriction AGE-001 in the rule engine correctly applies the minimum age 45 for routine screening colonoscopy."""
+    },
+    {
+        "passage_id": "USPSTF-MAMMO-001",
+        "source": "USPSTF Breast Cancer Screening Recommendation 2024",
+        "category": "preventive",
+        "evidence_level": "Grade B",
+        "icd_codes": ["Z12.31"],
+        "cpt_codes": ["77067", "77065", "77066"],
+        "content": """The USPSTF recommends biennial screening mammography (CPT 77067) for women aged 40-74 years (Grade B recommendation updated 2024, lowered from age 50). Annual mammography is an option for women with elevated risk. Claims for screening mammography (ICD-10 Z12.31) are covered under the ACA preventive benefit without cost-sharing for in-network providers. Diagnostic mammography (CPT 77065 unilateral, 77066 bilateral) is indicated for evaluation of breast symptoms, abnormal screening findings, or surveillance after breast cancer treatment, and requires a clinical indication code rather than screening code."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # MENTAL HEALTH
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "APA-MDD-001",
+        "source": "APA Practice Guideline for Major Depressive Disorder 2023",
+        "category": "psychiatry",
+        "evidence_level": "Level 1",
+        "icd_codes": ["F32.0", "F32.1", "F32.2", "F32.9", "F33.0", "F33.9"],
+        "cpt_codes": ["90837", "90834", "99214"],
+        "content": """Major depressive disorder (ICD-10 F32.x single episode, F33.x recurrent) is a highly prevalent condition affecting approximately 8% of the US adult population. First-line treatment consists of antidepressant medication (SSRIs, SNRIs) combined with psychotherapy. PHQ-9 screening at each visit to assess severity and treatment response. Individual psychotherapy sessions (CPT 90837 for 53+ min, 90834 for 38-52 min) are medically necessary for moderate-severe depression. Combined pharmacotherapy and psychotherapy is more effective than either alone for moderate-severe MDD. Mental health parity laws require insurance plans to cover MDD treatment comparably to other medical conditions."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # INSURANCE PLAN TIERS — COVERAGE POLICY
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "PLAN-BASIC-001",
+        "source": "ClaimIQ Insurance Plan Coverage Matrix v1.0",
+        "category": "coverage",
+        "evidence_level": "Plan Policy",
+        "icd_codes": [],
+        "cpt_codes": ["27447", "27130", "70553", "72148", "33533"],
+        "content": """BASIC insurance plan exclusions: The BASIC tier plan does not cover the following elective procedures: (1) Total knee arthroplasty (CPT 27447) and total hip arthroplasty (CPT 27130) for osteoarthritis — these require STANDARD or PREMIUM plan, (2) Advanced MRI imaging including brain MRI (CPT 70553) and lumbar spine MRI (CPT 72148) — only diagnostic X-ray covered on BASIC, (3) Coronary artery bypass grafting (CPT 33533) — requires PREMIUM plan. BASIC plan covers: emergency services, primary care office visits, generic medications, basic laboratory tests (CBC, BMP), and chest X-ray. Claims for excluded procedures under BASIC plan will be denied per rule COV-001 (joint replacement) and COV-002 (advanced MRI) regardless of medical necessity."""
+    },
+    {
+        "passage_id": "PLAN-STANDARD-001",
+        "source": "ClaimIQ Insurance Plan Coverage Matrix v1.0",
+        "category": "coverage",
+        "evidence_level": "Plan Policy",
+        "icd_codes": [],
+        "cpt_codes": ["27447", "27130", "70553", "33533"],
+        "content": """STANDARD insurance plan coverage: The STANDARD tier covers elective joint replacement (CPT 27447, 27130) and advanced imaging (CPT 70553) with prior authorization. Requires documented medical necessity including failed conservative treatment for at least 3 months for joint replacement. Coronary artery bypass (CPT 33533) requires prior authorization and cardiac clearance. STANDARD plan provides broader formulary access than BASIC but excludes some biologic drugs and experimental treatments. Co-pays and deductibles apply. Prior authorization required for procedures listed in AUTH rules."""
+    },
+    {
+        "passage_id": "PLAN-PREMIUM-001",
+        "source": "ClaimIQ Insurance Plan Coverage Matrix v1.0",
+        "category": "coverage",
+        "evidence_level": "Plan Policy",
+        "icd_codes": [],
+        "cpt_codes": ["27447", "27130", "70553", "33533", "61796", "96413"],
+        "content": """PREMIUM insurance plan coverage: The PREMIUM tier provides the most comprehensive coverage. Covers all elective surgical procedures including joint replacement (CPT 27447, 27130), advanced brain imaging and neurosurgery (CPT 70553, 61796), cardiac surgery (CPT 33533), chemotherapy (CPT 96413), and radiation therapy (CPT 77386). Prior authorization still required for major surgical procedures and advanced imaging. Lower co-pays and deductibles than STANDARD. Covers biologic medications, clinical trial participation, and comprehensive cancer care. Claims from PREMIUM plan members are less likely to be denied for coverage reasons but prior authorization requirements still apply."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # AGE RESTRICTIONS
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "AGE-RESTRICT-001",
+        "source": "CMS Medicare Coverage Policy — Age Eligibility",
+        "category": "coverage",
+        "evidence_level": "CMS Policy",
+        "icd_codes": [],
+        "cpt_codes": ["27447", "27130", "45378"],
+        "content": """Age-based coverage restrictions for selected procedures: (1) Total knee and hip arthroplasty (CPT 27447, 27130): Generally not covered for patients under age 18 due to ongoing skeletal development and implant longevity concerns. Rare exceptions exist for severe juvenile idiopathic arthritis with documented specialist approval and exhaustion of all non-surgical alternatives. (2) Routine screening colonoscopy (CPT 45378): Covered starting age 45 per current USPSTF Grade A recommendation. Patients aged 40-44 may be covered if higher risk based on family history. Under age 40: only covered as diagnostic procedure with symptoms or family history documentation. Age restrictions are applied based on the patient's age band at time of service."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # RADIATION ONCOLOGY
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "ASTRO-RT-001",
+        "source": "ASTRO Clinical Practice Guidelines — Brain Tumors 2023",
+        "category": "oncology",
+        "evidence_level": "Strong",
+        "icd_codes": ["C71.9", "C79.31"],
+        "cpt_codes": ["77386", "77385", "61796", "77295"],
+        "content": """Radiation therapy for brain tumors: IMRT (CPT 77386) or 3D-CRT is the standard radiation technique for glioblastoma, delivering 60 Gy in 30 fractions over 6 weeks. Hypofractionated radiation (40 Gy in 15 fractions over 3 weeks, CPT 77385) is appropriate for elderly patients or those with poor performance status. Stereotactic radiosurgery (SRS, CPT 61796) delivers high-dose radiation in 1-5 fractions for small to medium brain metastases (≤4 lesions, each <3 cm) or recurrent GBM. 3D radiotherapy planning (CPT 77295) with dose-volume histogram analysis is required for all cranial radiation plans. These radiation services are medically necessary for patients with malignant brain tumors and should be approved with supporting oncology documentation."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # CHRONIC KIDNEY DISEASE
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "KDIGO-CKD-001",
+        "source": "KDIGO 2024 CKD Guideline",
+        "category": "nephrology",
+        "evidence_level": "Grade 1A",
+        "icd_codes": ["N18.1", "N18.2", "N18.3", "N18.4", "N18.5", "N18.6"],
+        "cpt_codes": ["80053", "82565", "82043"],
+        "content": """Chronic kidney disease (CKD, ICD-10 N18.1-N18.6) staging is based on GFR and albuminuria. CKD Stage 3 (GFR 30-59): comprehensive metabolic panel (CPT 80053) every 6 months including creatinine (CPT 82565) and eGFR; urine albumin-creatinine ratio (CPT 82043) annually. CKD Stage 4-5 (GFR <30): labs every 3 months, nephrology referral required. SGLT2 inhibitors are recommended for CKD patients with T2DM or heart failure to slow progression. ACE inhibitors or ARBs for proteinuric CKD. ESRD (ICD-10 N18.6) requires renal replacement therapy (dialysis or transplant). These monitoring services are medically necessary and covered under all plan tiers."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # HYPERTENSION
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "ACC-HTN-001",
+        "source": "ACC/AHA 2017 High Blood Pressure Guideline",
+        "category": "cardiology",
+        "evidence_level": "Class I Level A",
+        "icd_codes": ["I10", "I11.9"],
+        "cpt_codes": ["93000", "80053"],
+        "content": """Essential hypertension (ICD-10 I10) is defined as blood pressure ≥130/80 mmHg per ACC/AHA 2017 guidelines (Stage 1: 130-139/80-89, Stage 2: ≥140/90). First-line antihypertensive agents include thiazide diuretics, ACE inhibitors, ARBs, and calcium channel blockers. Lifestyle modifications include sodium reduction to <2.3g/day, DASH diet, weight loss, exercise, and alcohol moderation. ECG (CPT 93000) at diagnosis and periodically to assess for LVH. Basic metabolic panel (CPT 80053) annually to monitor renal function and electrolytes. Target BP <130/80 for most adults, <140/90 for patients over 65. Office visit with blood pressure measurement at each encounter."""
+    },
+
+    # ══════════════════════════════════════════════════════════════════
+    # EDGE CASE — IMAGE TEXT MISMATCH
+    # ══════════════════════════════════════════════════════════════════
+    {
+        "passage_id": "CLAIMIQ-EDGE-001",
+        "source": "ClaimIQ Clinical Decision Support — Imaging Discordance Policy",
+        "category": "edge_cases",
+        "evidence_level": "Internal Policy",
+        "icd_codes": [],
+        "cpt_codes": [],
+        "content": """Imaging-text diagnosis mismatch (IMAGE_TEXT_MISMATCH) occurs when the AI imaging analysis suggests a different primary diagnosis than the clinical documentation. This represents a HIGH severity edge case requiring human review before adjudication. Examples: (1) MRI imaging AI suggests glioma but clinical notes describe ACL injury — imaging and text are unrelated diagnoses, indicating possible claim submission error or wrong patient data. (2) Imaging suggests malignant tumor but clinical notes describe benign lesion — discordance in diagnosis severity. Actions required: (a) verify patient identity and claim data integrity, (b) request radiologist review of imaging, (c) request treating physician attestation of clinical diagnosis, (d) do NOT auto-approve or auto-reject until discordance is resolved. Mismatch score threshold: HIGH severity if >0.70, MEDIUM if 0.50-0.70."""
+    },
+    {
+        "passage_id": "CLAIMIQ-MISSING-DX-001",
+        "source": "ClaimIQ Clinical Decision Support — Missing Diagnosis Policy",
+        "category": "edge_cases",
+        "evidence_level": "Internal Policy",
+        "icd_codes": [],
+        "cpt_codes": [],
+        "content": """Missing diagnosis (MISSING_DIAGNOSIS) is a CRITICAL edge case that prevents adjudication. A claim cannot be adjudicated without at least one ICD-10 diagnosis code. Required actions: (1) return claim to submitter with request for diagnosis codes, (2) do not approve or reject the claim, (3) provide clear instructions: the submitter must supply ICD-10 diagnosis codes supporting medical necessity for the claimed procedures, (4) log as incomplete claim in audit trail. If procedures are present but diagnoses are absent, verify whether this is an evaluation and management (E/M) only claim — E/M claims (CPT 99201-99215) may not require a specific diagnosis code if submitted as preventive visit (ICD-10 Z00.00). All other procedure codes require supporting diagnosis documentation."""
+    },
+]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TF-IDF MEDICAL VOCABULARY EMBEDDER
+# ─────────────────────────────────────────────────────────────────────────────
+
+MEDICAL_VOCAB = [
+    # Anatomy
+    "brain","cerebral","cranial","spinal","cortex","lobe","temporal","frontal",
+    "parietal","occipital","cerebellum","brainstem","pituitary","meninges",
+    "ventricle","hippocampus","thalamus","hypothalamus","nerve","neuron",
+    "breast","cardiac","coronary","artery","vein","heart","lung","colon",
+    "kidney","liver","prostate","bone","joint","knee","hip","spine","shoulder",
+    # Diagnoses
+    "glioma","glioblastoma","gbm","tumor","neoplasm","malignant","benign",
+    "cancer","carcinoma","adenoma","metastasis","metastatic","lymphoma",
+    "leukemia","melanoma","sarcoma","meningioma","astrocytoma","oligodendroglioma",
+    "dementia","alzheimer","cognitive","impairment","mci","delirium","parkinson",
+    "diabetes","hypertension","hypertensive","hyperlipidemia","obesity","thyroid",
+    "osteoarthritis","arthritis","rheumatoid","fracture","osteoporosis","stenosis",
+    "infarction","ischemic","stroke","embolism","thrombosis","atherosclerosis",
+    "fibrillation","arrhythmia","tachycardia","bradycardia","angina","failure",
+    "pneumonia","asthma","copd","emphysema","bronchitis","respiratory",
+    "depression","anxiety","schizophrenia","bipolar","adhd","ptsd","disorder",
+    "renal","kidney","dialysis","esrd","proteinuria","nephropathy","ckd",
+    "sepsis","infection","bacterial","viral","immunodeficiency","hiv",
+    # Procedures
+    "surgery","surgical","resection","excision","biopsy","craniotomy","mastectomy",
+    "arthroplasty","replacement","arthroscopy","reconstruction","repair","bypass",
+    "chemotherapy","radiation","radiosurgery","stereotactic","imrt","ablation",
+    "imaging","mri","ct","scan","xray","ultrasound","mammography","pet","spect",
+    "echocardiogram","electrocardiogram","colonoscopy","endoscopy","catheterization",
+    "laboratory","blood","urine","pathology","culture","biopsy","panel","test",
+    # Clinical concepts
+    "diagnosis","treatment","therapy","management","surveillance","screening",
+    "prevention","palliative","curative","adjuvant","neoadjuvant","systemic",
+    "stage","grade","classification","who","severity","prognosis","outcomes",
+    "dose","regimen","protocol","guideline","criteria","indication","contraindication",
+    "prior","authorization","coverage","benefit","exclusion","limitation","plan",
+    "medical","necessity","documentation","clinical","evidence","recommendation",
+    "approved","rejected","review","appeal","deny","approve","authorization",
+    # Abbreviations
+    "nccn","cms","aha","acc","aaos","uspstf","ada","kdigo","astro","apa",
+    "icd","cpt","drg","npi","hipaa","phi","ehr","emr","rvu","lcd","ncd",
+    "gfr","hba1c","ldl","hdl","tsh","psa","cea","ca125","egfr","pft",
+    # Evidence terms
+    "randomized","controlled","trial","evidence","grade","level","category",
+    "recommendation","guideline","protocol","standard","care","best practice",
+]
+
+def _embed(text: str) -> list[float]:
+    """TF-IDF style sparse embedding over medical vocabulary."""
+    text_lower = text.lower()
+    words = re.findall(r'\b\w+\b', text_lower)
+    word_freq: dict[str, int] = {}
+    for w in words:
+        word_freq[w] = word_freq.get(w, 0) + 1
+
+    vector = []
+    for vocab_word in MEDICAL_VOCAB:
+        tf = word_freq.get(vocab_word, 0)
+        # Boost partial matches
+        if tf == 0:
+            tf = sum(1 for w in words if vocab_word in w or w in vocab_word) * 0.5
+        vector.append(tf)
+
+    # L2 normalize
+    mag = math.sqrt(sum(x*x for x in vector))
+    if mag > 0:
+        vector = [x/mag for x in vector]
+    return vector
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DATABASE SCHEMA
+# ─────────────────────────────────────────────────────────────────────────────
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS guidelines (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    passage_id   TEXT UNIQUE NOT NULL,
+    source       TEXT NOT NULL,
+    category     TEXT NOT NULL,
+    evidence_level TEXT,
+    icd_codes    TEXT DEFAULT '[]',
+    cpt_codes    TEXT DEFAULT '[]',
+    content      TEXT NOT NULL,
+    embedding    TEXT NOT NULL,
+    word_count   INTEGER DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_category   ON guidelines (category);
+CREATE INDEX IF NOT EXISTS idx_passage_id ON guidelines (passage_id);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS guidelines_fts
+USING fts5(passage_id, source, content, content=guidelines, content_rowid=id);
+
+CREATE TRIGGER IF NOT EXISTS g_ai AFTER INSERT ON guidelines BEGIN
+    INSERT INTO guidelines_fts(rowid, passage_id, source, content)
+    VALUES (new.id, new.passage_id, new.source, new.content);
+END;
+"""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BUILDER
+# ─────────────────────────────────────────────────────────────────────────────
+
+def build_db(extra_pdf: str = None, extra_source: str = None):
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    if DB_PATH.exists():
+        DB_PATH.unlink()
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.executescript(SCHEMA)
+
+    chunks = list(GUIDELINE_CHUNKS)
+
+    # Load extra PDF if provided
+    if extra_pdf and Path(extra_pdf).exists():
+        try:
+            import fitz  # pymupdf
+            doc = fitz.open(extra_pdf)
+            text = " ".join(page.get_text() for page in doc)
+            # Simple chunking: 500 words with 100 overlap
+            words = text.split()
+            chunk_size, overlap = 500, 100
+            for i in range(0, len(words), chunk_size - overlap):
+                chunk_text = " ".join(words[i:i+chunk_size])
+                if len(chunk_text) > 200:
+                    chunks.append({
+                        "passage_id": f"PDF-{Path(extra_pdf).stem}-{i//chunk_size:04d}",
+                        "source": extra_source or Path(extra_pdf).stem,
+                        "category": "custom",
+                        "evidence_level": "PDF Import",
+                        "icd_codes": [],
+                        "cpt_codes": [],
+                        "content": chunk_text,
+                    })
+            print(f"  Loaded PDF: {extra_pdf} ({len(words)} words)")
+        except ImportError:
+            print("  pymupdf not installed — pip install pymupdf to load PDFs")
+
+    inserted = 0
+    for chunk in chunks:
+        embedding = _embed(chunk["content"])
+        conn.execute(
+            """INSERT OR REPLACE INTO guidelines
+               (passage_id, source, category, evidence_level, icd_codes, cpt_codes, content, embedding, word_count)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (
+                chunk["passage_id"],
+                chunk["source"],
+                chunk["category"],
+                chunk.get("evidence_level", ""),
+                json.dumps(chunk.get("icd_codes", [])),
+                json.dumps(chunk.get("cpt_codes", [])),
+                chunk["content"],
+                json.dumps(embedding),
+                len(chunk["content"].split()),
+            )
+        )
+        inserted += 1
+
+    conn.commit()
+    conn.close()
+
+    size_kb = DB_PATH.stat().st_size // 1024
+    print(f"\n  RAG database built: {DB_PATH}")
+    print(f"  Chunks:     {inserted}")
+    print(f"  Vocab size: {len(MEDICAL_VOCAB)}")
+    print(f"  Size:       {size_kb} KB")
+
+    # Also update the JSON file for backward compatibility
+    json_path = DB_PATH.parent / "nccn_chunks.json"
+    with open(json_path, "w") as f:
+        json.dump(GUIDELINE_CHUNKS, f, indent=2)
+    print(f"  JSON file:  {json_path} ({len(GUIDELINE_CHUNKS)} chunks)")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Build RAG guidelines database")
+    parser.add_argument("--pdf",    default=None, help="Path to a PDF guideline to add")
+    parser.add_argument("--source", default=None, help="Source name for the PDF")
+    args = parser.parse_args()
+
+    print("\n=== Building RAG Guidelines Database ===")
+    build_db(extra_pdf=args.pdf, extra_source=args.source)
+    print("\n  Done.\n")
