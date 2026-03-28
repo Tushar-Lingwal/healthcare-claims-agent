@@ -89,7 +89,7 @@ iframe.report-iframe{width:100%;border:none;display:block;min-height:calc(100vh 
 </div>
 
 <script>
-const API = sessionStorage.getItem('claimiq_api') || 'http://localhost:8000';
+const API = sessionStorage.getItem('claimiq_api') || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8000' : 'https://healthcare-claims-agent-production-a15d.up.railway.app';
 
 // ── Animate loading steps ──────────────────────────────────────────
 const STEP_TIMES = [400, 800, 1200, 1600, 2000, 2400];
