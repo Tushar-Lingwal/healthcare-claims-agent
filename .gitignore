@@ -46,3 +46,7 @@ logs/
 
 # Compiled code database (rebuilt on deploy)
 data/codes/medical_codes.sqlite
+"swin_brain_merged_best_model.pth" 
+"*.pth" 
+"*.pt" 
+"hf_space/" 
