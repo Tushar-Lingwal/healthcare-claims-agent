@@ -99,6 +99,7 @@ def _get_auth_db() -> sqlite3.Connection:
 def _hash_password(password: str) -> str:
     if not _AUTH_AVAILABLE:
         return f"plain:{password}"  # fallback for dev without passlib
+    password = password[:72]  # bcrypt 72-byte hard limit
     ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
     return ctx.hash(password)
 
@@ -139,15 +140,17 @@ def get_user(username: str) -> Optional[dict]:
 
 
 def ensure_default_admin():
-    """Creates a default admin user if no users exist. Logged on first start."""
-    conn = _get_auth_db()
-    count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-    conn.close()
-    if count == 0:
-        default_pass = os.environ.get("DEFAULT_ADMIN_PASSWORD", "admin123")
-        create_user("admin", default_pass, "admin")
-        print(f"\n  [auth] Default admin created: username=admin password={default_pass}")
-        print(f"  [auth] Change this immediately in production!\n")
+    """Creates a default admin user if no users exist."""
+    try:
+        conn = _get_auth_db()
+        count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        conn.close()
+        if count == 0:
+            default_pass = os.environ.get("DEFAULT_ADMIN_PASSWORD", "admin123")[:72]
+            create_user("admin", default_pass, "admin")
+            print("\n  [auth] Default admin created: username=admin")
+    except Exception as e:
+        print(f"  [auth] Skipped admin creation: {e}")
 
 # ─────────────────────────────────────────────
 # JWT
