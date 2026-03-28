@@ -6,553 +6,285 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#08080e;--s1:#0f0f1a;--s2:#16162a;--s3:#1e1e36;
-  --b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.10);--b3:rgba(255,255,255,0.16);
-  --t1:#eeeef5;--t2:#9090b0;--t3:#50506a;
-  --blue:#5b8fff;--purple:#9d6fff;--teal:#2dd4bf;--green:#22d37a;--amber:#f5a623;--red:#ff6b6b;
-  --serif:'Cormorant Garamond',Georgia,serif;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
-}
-html{font-size:15px;scroll-behavior:smooth}
-body{background:var(--bg);color:var(--t1);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;min-height:100vh}
-::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#222238;border-radius:2px}
+:root{--bg:#09090f;--s1:#111118;--s2:#18181f;--s3:#202028;--b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.10);--t1:#e8e8f0;--t2:#8888a8;--t3:#44445a;--blue:#6b8fff;--purple:#a67fff;--green:#34d97b;--red:#ff6b6b;--amber:#f5a623;--serif:'Cormorant Garamond',Georgia,serif;--mono:'DM Mono',monospace;--sans:'DM Sans',system-ui,sans-serif}
+html{font-size:14px}body{background:var(--bg);color:var(--t1);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#222235}
 
-/* ── NAV ── */
-.nav{position:fixed;top:0;left:0;right:0;z-index:100;height:58px;display:flex;align-items:center;padding:0 40px;background:rgba(8,8,14,0.8);backdrop-filter:blur(16px);border-bottom:1px solid var(--b1)}
-.nav-inner{max-width:1160px;width:100%;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
-.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
-.nav-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#fff;font-weight:500}
-.nav-name{font-family:var(--serif);font-size:1.05rem;font-weight:400;color:var(--t1)}
-.nav-center{display:flex;align-items:center;gap:2px}
-.nl{padding:6px 14px;border-radius:6px;text-decoration:none;font-size:.78rem;color:var(--t2);transition:all .2s}
-.nl:hover{color:var(--t1);background:var(--b1)}
-.nl.a{color:var(--t1)}
-.nav-right{display:flex;align-items:center;gap:10px}
-.ndot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
-.ntxt{font-family:var(--mono);font-size:.6rem;color:var(--t3)}
-.btn-nav{padding:8px 18px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-family:var(--sans);font-size:.78rem;font-weight:500;text-decoration:none;border:none;cursor:pointer;transition:opacity .2s}
-.btn-nav:hover{opacity:.88}
+nav{height:54px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;background:rgba(9,9,15,0.95);backdrop-filter:blur(12px);z-index:50}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none}.mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff}.bname{font-family:var(--mono);font-size:.75rem;color:var(--t1)}
+.nav-links{display:flex;gap:1px}.nl{padding:5px 12px;border-radius:5px;text-decoration:none;font-size:.72rem;color:var(--t3);transition:color .15s}.nl:hover{color:var(--t2)}.nl.a{color:var(--t1)}
+.api-row{display:flex;align-items:center;gap:7px}.dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.atxt{font-family:var(--mono);font-size:.58rem;color:var(--t3)}
+.btn-launch{padding:7px 16px;border-radius:6px;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-family:var(--mono);font-size:.65rem;text-decoration:none;transition:opacity .2s}.btn-launch:hover{opacity:.85}
 
-/* ── HERO ── */
-.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 40px 60px;text-align:center;position:relative}
-.hero-tag{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:50px;border:1px solid var(--b2);font-family:var(--mono);font-size:.6rem;color:var(--t3);margin-bottom:32px;letter-spacing:.06em;text-transform:uppercase}
-.hero-tag-dot{width:5px;height:5px;border-radius:50%;background:var(--blue)}
-h1{font-family:var(--serif);font-size:clamp(3rem,6vw,5.2rem);font-weight:300;line-height:1.08;letter-spacing:.01em;margin-bottom:22px;max-width:700px;font-style:italic}
-h1 em{font-style:normal;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:400}
-.hero-sub{font-size:.9rem;color:var(--t2);line-height:1.75;max-width:480px;margin:0 auto 36px}
-.hero-btns{display:flex;gap:12px;justify-content:center;margin-bottom:72px}
-.btn-p{padding:12px 28px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-family:var(--sans);font-size:.85rem;font-weight:500;text-decoration:none;border:none;cursor:pointer;transition:all .2s}
-.btn-p:hover{opacity:.88;transform:translateY(-1px)}
-.btn-s{padding:12px 28px;border-radius:9px;border:1px solid var(--b2);background:transparent;color:var(--t2);font-family:var(--sans);font-size:.85rem;font-weight:400;text-decoration:none;cursor:pointer;transition:all .2s}
-.btn-s:hover{border-color:var(--b3);color:var(--t1)}
+/* HERO */
+.hero{min-height:calc(100vh - 54px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 32px;text-align:center}
+.hero-tag{font-family:var(--mono);font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--t3);margin-bottom:28px;display:flex;align-items:center;gap:8px;justify-content:center}
+.hero-tag::before,.hero-tag::after{content:'';width:24px;height:1px;background:var(--b2)}
+h1{font-family:var(--serif);font-size:clamp(3.2rem,7vw,6rem);font-weight:300;font-style:italic;line-height:1.05;letter-spacing:.01em;margin-bottom:20px;max-width:700px}
+h1 em{font-style:normal;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:.88rem;color:var(--t2);line-height:1.75;max-width:460px;margin:0 auto 36px}
+.hero-btns{display:flex;gap:10px;justify-content:center;margin-bottom:64px}
+.btn-p{padding:11px 26px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-family:var(--sans);font-size:.82rem;font-weight:500;text-decoration:none;border:none;cursor:pointer;transition:opacity .2s}.btn-p:hover{opacity:.85}
+.btn-s{padding:11px 26px;border-radius:8px;border:1px solid var(--b1);background:transparent;color:var(--t2);font-family:var(--sans);font-size:.82rem;font-weight:400;text-decoration:none;cursor:pointer;transition:all .2s}.btn-s:hover{border-color:var(--b2);color:var(--t1)}
 
-/* ── PIPELINE CANVAS SECTION ── */
-.agent-section{max-width:1160px;width:100%;margin:0 auto;padding:0 40px}
-.agent-label{font-family:var(--mono);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);text-align:center;margin-bottom:8px}
-.agent-hint{font-size:.75rem;color:var(--t3);text-align:center;margin-bottom:36px}
-.agent-wrap{background:var(--s1);border:1px solid var(--b1);border-radius:20px;overflow:hidden;position:relative}
-.agent-canvas-wrap{position:relative}
-canvas#agentCanvas{width:100%;display:block}
-.agent-overlay{position:absolute;bottom:0;left:0;right:0;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(transparent,rgba(8,8,14,0.9))}
-.ao-left{display:flex;align-items:center;gap:10px}
-.ao-dot{width:7px;height:7px;border-radius:50%}
-.ao-stage{font-family:var(--mono);font-size:.65rem;color:var(--t1)}
-.ao-sub{font-family:var(--mono);font-size:.58rem;color:var(--t3);margin-top:1px}
-.ao-right{display:flex;gap:8px}
-.ao-btn{padding:5px 14px;border-radius:6px;border:1px solid var(--b2);background:rgba(0,0,0,0.4);color:var(--t2);font-family:var(--mono);font-size:.6rem;cursor:pointer;transition:all .2s;backdrop-filter:blur(8px)}
-.ao-btn:hover{border-color:var(--b3);color:var(--t1)}
+/* NEURAL CANVAS */
+.nn-wrap{width:100%;max-width:900px;margin:0 auto}
+.nn-label{font-family:var(--mono);font-size:.54rem;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:10px;text-align:center}
+.nn-card{background:var(--s1);border:1px solid var(--b1);border-radius:12px;overflow:hidden}
+.nn-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--b1)}
+.nn-dots{display:flex;gap:5px}.nn-dot{width:8px;height:8px;border-radius:50%}
+.nn-controls{display:flex;gap:6px}
+.nn-btn{padding:4px 12px;border-radius:5px;border:1px solid var(--b1);background:transparent;color:var(--t3);font-family:var(--mono);font-size:.58rem;cursor:pointer;transition:all .15s}.nn-btn:hover{border-color:var(--b2);color:var(--t2)}
+canvas#nnc{display:block;width:100%}
+.nn-info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--b1)}
+.nni{padding:11px 16px;border-right:1px solid var(--b1)}.nni:last-child{border:none}
+.nni-label{font-family:var(--mono);font-size:.52rem;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:3px}
+.nni-val{font-family:var(--mono);font-size:.72rem;color:var(--t1)}
+.nni-val.blue{color:var(--blue)}.nni-val.green{color:var(--green)}.nni-val.amber{color:var(--amber)}
 
-/* ── STATS ROW ── */
-.stats-row{max-width:1160px;margin:60px auto;padding:0 40px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--b1);border:1px solid var(--b1);border-radius:16px;overflow:hidden}
-.stat-cell{background:var(--s1);padding:28px 24px;text-align:center}
-.stat-n{font-family:var(--serif);font-size:2.6rem;font-weight:300;font-style:italic;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
-.stat-l{font-family:var(--mono);font-size:.58rem;color:var(--t3);text-transform:uppercase;letter-spacing:.12em;margin-top:6px}
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--b1);border:1px solid var(--b1);border-radius:10px;overflow:hidden;max-width:700px;margin:60px auto}
+.stat{background:var(--s1);padding:20px;text-align:center}
+.stat-n{font-family:var(--serif);font-size:2.4rem;font-weight:300;font-style:italic;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.stat-l{font-family:var(--mono);font-size:.52rem;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
 
-/* ── FEATURES ── */
-.features{max-width:1160px;margin:0 auto;padding:0 40px 80px}
-.feat-eyebrow{font-family:var(--mono);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:12px}
-.feat-h{font-family:var(--serif);font-size:clamp(1.8rem,3vw,2.6rem);font-weight:300;font-style:italic;letter-spacing:.01em;margin-bottom:48px}
-.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.feat-card{background:var(--s1);border:1px solid var(--b1);border-radius:16px;padding:24px;transition:border-color .2s}
-.feat-card:hover{border-color:var(--b2)}
-.feat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:14px}
-.feat-title{font-size:.88rem;font-weight:500;margin-bottom:7px;color:var(--t1)}
-.feat-desc{font-size:.74rem;color:var(--t2);line-height:1.65}
+/* FEATURES */
+.features{max-width:900px;margin:0 auto;padding:60px 32px}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.feat{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:18px}
+.feat-icon{font-size:.9rem;margin-bottom:10px;display:block}
+.feat-title{font-size:.8rem;font-weight:500;margin-bottom:5px}
+.feat-desc{font-size:.7rem;color:var(--t2);line-height:1.6}
 
-/* ── CTA ── */
-.cta{max-width:1160px;margin:0 auto;padding:0 40px 100px}
-.cta-card{background:linear-gradient(135deg,rgba(91,143,255,0.07),rgba(157,111,255,0.1));border:1px solid rgba(157,111,255,0.18);border-radius:24px;padding:60px 48px;text-align:center}
-.cta-h{font-family:var(--serif);font-size:clamp(2rem,3vw,2.8rem);font-weight:300;font-style:italic;margin-bottom:14px}
-.cta-sub{font-size:.88rem;color:var(--t2);line-height:1.7;margin-bottom:28px}
+/* CTA */
+.cta{max-width:500px;margin:0 auto;padding:0 32px 80px;text-align:center}
+.cta-h{font-family:var(--serif);font-size:clamp(1.6rem,3vw,2.2rem);font-weight:300;font-style:italic;margin-bottom:12px}
+.cta-s{font-size:.82rem;color:var(--t2);margin-bottom:24px}
 
-/* ── FOOTER ── */
-.footer{border-top:1px solid var(--b1);padding:28px 40px}
-.footer-inner{max-width:1160px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
-.footer-brand{font-family:var(--mono);font-size:.62rem;color:var(--t3)}
-.footer-links{display:flex;gap:20px}
-.fl{font-family:var(--mono);font-size:.6rem;color:var(--t3);text-decoration:none}
-.fl:hover{color:var(--t2)}
+footer{border-top:1px solid var(--b1);padding:20px 32px;display:flex;align-items:center;justify-content:space-between}
+.ft{font-family:var(--mono);font-size:.58rem;color:var(--t3)}
+.flinks{display:flex;gap:16px}.fl{font-family:var(--mono);font-size:.58rem;color:var(--t3);text-decoration:none}.fl:hover{color:var(--t2)}
 
-/* TOAST */
-.toast{position:fixed;bottom:20px;right:20px;z-index:999;padding:9px 16px;border-radius:8px;font-family:var(--mono);font-size:.68rem;border:1px solid;transform:translateY(50px);opacity:0;transition:all .3s}
+.toast{position:fixed;bottom:20px;right:20px;z-index:999;padding:8px 14px;border-radius:7px;font-family:var(--mono);font-size:.62rem;border:1px solid;transform:translateY(50px);opacity:0;transition:all .3s}
 .toast.show{transform:translateY(0);opacity:1}
-.toast.ok{background:rgba(34,211,122,0.1);border-color:rgba(34,211,122,0.3);color:var(--green)}
+.toast.ok{background:rgba(52,217,123,0.1);border-color:rgba(52,217,123,0.3);color:var(--green)}
 .toast.err{background:rgba(255,107,107,0.1);border-color:rgba(255,107,107,0.3);color:var(--red)}
 </style>
 </head>
 <body>
-
 <div class="toast" id="toast"></div>
-
-<!-- NAV -->
-<nav class="nav">
-  <div class="nav-inner">
-    <a class="nav-brand" href="index.html">
-      <div class="nav-mark">Rx</div>
-      <div class="nav-name">ClaimIQ</div>
-    </a>
-    <div class="nav-center">
-      <a class="nl a" href="index.html">Overview</a>
-      <a class="nl" href="submit.html">Submit</a>
-      <a class="nl" href="dashboard.html">Dashboard</a>
-      <a class="nl" href="imaging.html">Imaging</a>
-    </div>
-    <div class="nav-right">
-      <div class="ndot" id="ndot"></div>
-      <span class="ntxt" id="ntxt">Connecting...</span>
-      <a class="btn-nav" href="submit.html">Launch App →</a>
-    </div>
+<nav>
+  <a class="brand" href="index.html"><div class="mark">Rx</div><div class="bname">ClaimIQ</div></a>
+  <div class="nav-links">
+    <a class="nl a" href="index.html">Overview</a>
+    <a class="nl" href="submit.html">Submit</a>
+    <a class="nl" href="dashboard.html">Dashboard</a>
+    <a class="nl" href="imaging.html">Imaging</a>
+  </div>
+  <div class="api-row">
+    <div class="dot" id="dot"></div>
+    <span class="atxt" id="atxt">Connecting...</span>
+    <a class="btn-launch" href="submit.html">Launch →</a>
   </div>
 </nav>
 
-<!-- HERO -->
 <section class="hero">
-  <div class="hero-tag"><div class="hero-tag-dot"></div>AI-powered healthcare claims</div>
-  <h1>AI That Understand<br><em>Clinical Claims</em> —<br>in seconds.</h1>
-  <p class="hero-sub">A clinical-grade adjudication system that extracts medical entities, maps ICD-10 and CPT codes, evaluates 14 policy rules, and delivers auditable decisions with full AI reasoning.</p>
+  <div class="hero-tag">AI-Powered Healthcare Claims</div>
+  <h1>From submission<br>to <em>decision</em> —<br>in seconds.</h1>
+  <p class="hero-sub">A clinical-grade adjudication system with 9-stage pipeline, 6 MoE expert agents, and full AI reasoning — every decision explained.</p>
   <div class="hero-btns">
     <a class="btn-p" href="submit.html">Submit a Claim</a>
     <a class="btn-s" href="dashboard.html">View Dashboard</a>
   </div>
 
-  <!-- Agentic AI 3D Visualizer -->
-  <div class="agent-section">
-    <div class="agent-label">Neural Adjudication Network — 9 layers · 31 neurons</div>
-    <div class="agent-hint">Click any neuron to fire a signal · Watch activations propagate forward through the pipeline</div>
-    <div class="agent-wrap">
-      <div class="agent-canvas-wrap">
-        <canvas id="nnCanvas"></canvas>
-        <div class="agent-overlay">
-          <div class="ao-left">
-            <div class="ao-dot" id="aoDot" style="background:#5b8fff;box-shadow:0 0 8px #5b8fff"></div>
-            <div>
-              <div class="ao-stage" id="aoStage">Signals propagating...</div>
-              <div class="ao-sub" id="aoSub" style="font-family:var(--mono);font-size:.58rem">Input → PHI → NER → Coding → RAG → Rules → Edge → Decision → Report</div>
-            </div>
-          </div>
-          <div class="ao-right">
-            <button class="ao-btn" id="aoBtnPlay" onclick="nnToggle()">⏸ Pause</button>
-            <button class="ao-btn" onclick="nnReset()">↺ Reset</button>
-            <button class="ao-btn" id="aoBtnSpeed" onclick="nnSpeed()">1× speed</button>
-          </div>
+  <div class="nn-wrap">
+    <div class="nn-label">Neural Adjudication Network — 9 layers · 31 neurons · 6 MoE experts</div>
+    <div class="nn-card">
+      <div class="nn-bar">
+        <div class="nn-dots">
+          <div class="nn-dot" style="background:#ff6b6b"></div>
+          <div class="nn-dot" style="background:#f5a623"></div>
+          <div class="nn-dot" style="background:#34d97b"></div>
+        </div>
+        <div class="nn-controls">
+          <button class="nn-btn" id="btnPlay" onclick="nnToggle()">⏸ pause</button>
+          <button class="nn-btn" onclick="nnReset()">↺ reset</button>
+          <button class="nn-btn" id="btnSpeed" onclick="nnSpeed()">1× speed</button>
         </div>
       </div>
-      <div style="padding:12px 20px 16px;border-top:1px solid rgba(255,255,255,0.06);display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-        <div><div style="font-family:var(--mono);font-size:.58rem;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Active layer</div><div style="font-size:.78rem;color:var(--blue);font-family:var(--mono)" id="nnLayer">—</div></div>
-        <div><div style="font-family:var(--mono);font-size:.58rem;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Function</div><div style="font-size:.75rem;color:var(--t2)" id="nnFunc">Hover a neuron</div></div>
-        <div><div style="font-family:var(--mono);font-size:.58rem;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Signal strength</div><div style="font-size:.75rem;color:var(--t2);font-family:var(--mono)" id="nnAct">—</div></div>
+      <canvas id="nnc"></canvas>
+      <div class="nn-info">
+        <div class="nni"><div class="nni-label">Active layer</div><div class="nni-val blue" id="niLayer">—</div></div>
+        <div class="nni"><div class="nni-label">Function</div><div class="nni-val" id="niFunc">Hover a neuron</div></div>
+        <div class="nni"><div class="nni-label">Activation</div><div class="nni-val" id="niAct">—</div></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- STATS -->
-<div class="stats-row">
-  <div class="stat-cell"><div class="stat-n" id="sT">0</div><div class="stat-l">Claims processed</div></div>
-  <div class="stat-cell"><div class="stat-n">534</div><div class="stat-l">Medical codes</div></div>
-  <div class="stat-cell"><div class="stat-n">14</div><div class="stat-l">Policy rules</div></div>
-  <div class="stat-cell"><div class="stat-n">35</div><div class="stat-l">Guideline passages</div></div>
+<div class="stats">
+  <div class="stat"><div class="stat-n" id="sTotal">0</div><div class="stat-l">Claims</div></div>
+  <div class="stat"><div class="stat-n">534</div><div class="stat-l">Codes</div></div>
+  <div class="stat"><div class="stat-n">14</div><div class="stat-l">Rules</div></div>
+  <div class="stat"><div class="stat-n">6</div><div class="stat-l">Experts</div></div>
 </div>
 
-<!-- FEATURES -->
 <section class="features">
-  <div class="feat-eyebrow">Capabilities</div>
-  <div class="feat-h">Built for real clinical environments.</div>
   <div class="feat-grid">
-    <div class="feat-card">
-      <div class="feat-icon" style="background:rgba(91,143,255,0.1);color:#5b8fff">🔐</div>
-      <div class="feat-title">PHI tokenization</div>
-      <div class="feat-desc">AES-256 vault encrypts all patient identifiers before any AI processing. Zero PHI in audit trails or LLM calls.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon" style="background:rgba(157,111,255,0.1);color:#9d6fff">🧠</div>
-      <div class="feat-title">Clinical NER</div>
-      <div class="feat-desc">184 medical regex patterns plus LLM-powered extraction reads free-text notes — no structured tags required.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon" style="background:rgba(45,212,191,0.1);color:#2dd4bf">📋</div>
-      <div class="feat-title">ICD-10 / CPT coding</div>
-      <div class="feat-desc">FTS5 full-text search across 534 codes with synonym translation, fuzzy matching, and confidence scoring.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon" style="background:rgba(34,211,122,0.1);color:#22d37a">📚</div>
-      <div class="feat-title">Clinical RAG</div>
-      <div class="feat-desc">35 real passages from NCCN, CMS, AHA, AAOS retrieved by medical TF-IDF to establish medical necessity.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon" style="background:rgba(245,166,35,0.1);color:#f5a623">⚖️</div>
-      <div class="feat-title">Policy rule engine</div>
-      <div class="feat-desc">14 deterministic rules covering compatibility, prior authorization, age restrictions, and plan coverage limits.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon" style="background:rgba(255,107,107,0.1);color:#ff6b6b">📄</div>
-      <div class="feat-title">AI clinical report</div>
-      <div class="feat-desc">LLM writes a full narrative document explaining the agent's reasoning, evidence, and specific recommendations.</div>
-    </div>
+    <div class="feat"><span class="feat-icon">🔐</span><div class="feat-title">PHI Tokenization</div><div class="feat-desc">AES-256 vault encrypts all patient identifiers before any AI processing. Zero PHI in audit trails.</div></div>
+    <div class="feat"><span class="feat-icon">🧠</span><div class="feat-title">Clinical NER</div><div class="feat-desc">184 medical patterns plus LLM extraction reads free-text notes without structured tags.</div></div>
+    <div class="feat"><span class="feat-icon">📋</span><div class="feat-title">ICD-10 / CPT Coding</div><div class="feat-desc">FTS5 full-text search across 534 codes with synonym translation and confidence scoring.</div></div>
+    <div class="feat"><span class="feat-icon">📚</span><div class="feat-title">Clinical RAG</div><div class="feat-desc">35 guideline passages from NCCN, CMS, AHA, AAOS retrieved by medical TF-IDF similarity.</div></div>
+    <div class="feat"><span class="feat-icon">🧬</span><div class="feat-title">MoE Expert Agents</div><div class="feat-desc">6 specialist agents — Oncology, Neurology, Cardiology, Radiology, Orthopedics, Psychiatry.</div></div>
+    <div class="feat"><span class="feat-icon">📄</span><div class="feat-title">AI Clinical Report</div><div class="feat-desc">LLM writes a full narrative document explaining reasoning, evidence, and recommendations.</div></div>
   </div>
 </section>
 
-<!-- CTA -->
 <section class="cta">
-  <div class="cta-card">
-    <div class="cta-h">Ready to process your first claim?</div>
-    <p class="cta-sub">Submit a claim and watch the full 9-stage pipeline — from PHI tokenization to AI-written clinical report — in under 5 seconds.</p>
-    <div style="display:flex;gap:12px;justify-content:center">
-      <a class="btn-p" href="submit.html">Submit a Claim</a>
-      <a class="btn-s" href="https://healthcare-claims-agent-production-a15d.up.railway.app/docs" target="_blank">API Docs</a>
-    </div>
+  <div class="cta-h">Ready to process a claim?</div>
+  <p class="cta-s">Submit your first claim and see the full pipeline — from PHI tokenization to AI-written clinical report.</p>
+  <div style="display:flex;gap:10px;justify-content:center">
+    <a class="btn-p" href="submit.html">Submit a Claim</a>
+    <a class="btn-s" href="https://healthcare-claims-agent-production-a15d.up.railway.app/docs" target="_blank">API Docs</a>
   </div>
 </section>
 
-<!-- FOOTER -->
-<footer class="footer">
-  <div class="footer-inner">
-    <div class="footer-brand">ClaimIQ v1.0 · Healthcare Claims Adjudication Agent</div>
-    <div class="footer-links">
-      <a class="fl" href="submit.html">Submit</a>
-      <a class="fl" href="dashboard.html">Dashboard</a>
-      <a class="fl" href="imaging.html">Imaging</a>
-      <a class="fl" href="https://healthcare-claims-agent-production-a15d.up.railway.app/docs" target="_blank">API</a>
-    </div>
+<footer>
+  <div class="ft">ClaimIQ v1.0 · Healthcare Claims Adjudication Agent</div>
+  <div class="flinks">
+    <a class="fl" href="submit.html">Submit</a>
+    <a class="fl" href="dashboard.html">Dashboard</a>
+    <a class="fl" href="imaging.html">Imaging</a>
+    <a class="fl" href="https://healthcare-claims-agent-production-a15d.up.railway.app/docs" target="_blank">API</a>
   </div>
 </footer>
 
 <script>
-const API = sessionStorage.getItem('claimiq_api') ||
-  (location.hostname==='localhost'||location.hostname==='127.0.0.1'
-    ? 'http://localhost:8000'
-    : 'https://healthcare-claims-agent-production-a15d.up.railway.app');
-
+const API=sessionStorage.getItem('claimiq_api')||(location.hostname==='localhost'||location.hostname==='127.0.0.1'?'http://localhost:8000':'https://healthcare-claims-agent-production-a15d.up.railway.app');
 function toast(m,t='ok'){const e=document.getElementById('toast');e.textContent=m;e.className=`toast ${t} show`;setTimeout(()=>e.classList.remove('show'),3000)}
 
-// ── NEURAL NETWORK VISUALIZER ──────────────────────────────────────────────
-const LAYERS = [
-  {name:'Input',       nodes:3, color:'#3a7fff', label:'Clinical data · Imaging · Custom model',
-   nodeLabels:['Clinical\nnotes','Image\nmodel','Custom\nmodel']},
-  {name:'PHI vault',   nodes:4, color:'#5a5fff', label:'Patient identifiers encrypted'},
-  {name:'NER',         nodes:5, color:'#7b5fff', label:'Medical entities extracted'},
-  {name:'Coder',       nodes:5, color:'#9b5fff', label:'ICD-10 & CPT codes mapped'},
-  {name:'RAG',         nodes:4, color:'#b05fdf', label:'Clinical guidelines retrieved'},
-  {name:'Rules',       nodes:4, color:'#c05faf', label:'14 policy rules evaluated'},
-  {name:'Edge',        nodes:3, color:'#d06f7f', label:'Anomalies screened'},
-  {name:'Decision',    nodes:3, color:'#e08f3f', label:'Approve · Review · Reject',
-   nodeLabels:['Approve','Review','Reject'], nodeColors:['#40df90','#f5a623','#ff6b6b']},
-  {name:'Report',      nodes:1, color:'#40df90', label:'AI clinical report generated'},
+const LAYERS=[
+  {name:'Input',nodes:3,col:'#6b8fff',label:'Claim data · Imaging · Custom'},
+  {name:'PHI vault',nodes:4,col:'#7a7fff',label:'Encrypt patient identifiers'},
+  {name:'NER',nodes:5,col:'#9070ff',label:'Extract medical entities'},
+  {name:'Coding',nodes:5,col:'#a070ff',label:'Map ICD-10 & CPT codes'},
+  {name:'RAG',nodes:4,col:'#b060df',label:'Retrieve guidelines'},
+  {name:'Rules',nodes:4,col:'#c060af',label:'Evaluate 14 policy rules'},
+  {name:'Edge',nodes:3,col:'#d06f7f',label:'Screen anomalies'},
+  {name:'Decision',nodes:3,col:'#e08f3f',label:'Approve · Review · Reject'},
+  {name:'Report',nodes:1,col:'#34d97b',label:'AI clinical report'},
 ];
-
-const canvas = document.getElementById('nnCanvas');
-const ctx    = canvas.getContext('2d');
-let W, H;
-let signals  = [];
-let activations = {};
-let playing  = true;
-let speed    = 1;
-let speedIdx = 0;
-const speeds = [1,2,0.5];
-let frame    = 0;
-let hovered  = null;
+const canvas=document.getElementById('nnc'),ctx=canvas.getContext('2d');
+let W,H,signals=[],acts={},playing=true,speed=1,speedIdx=0,frame=0,hov=null;
+const speeds=[1,2,0.5];
 
 function resize(){
-  const wrap = canvas.parentElement;
-  W = wrap.clientWidth;
-  H = Math.min(460, W * 0.54);
-  canvas.width  = W * devicePixelRatio;
-  canvas.height = H * devicePixelRatio;
-  canvas.style.width  = W + 'px';
-  canvas.style.height = H + 'px';
-  ctx.scale(devicePixelRatio, devicePixelRatio);
+  W=canvas.parentElement.clientWidth;H=Math.min(340,W*0.38);
+  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx.scale(devicePixelRatio,devicePixelRatio);
 }
-
-function lx(l){ return 32 + l * (W - 64) / (LAYERS.length - 1); }
-function ny(l,n){
-  const c=LAYERS[l].nodes, sp=(c-1)*52;
-  return H/2 - sp/2 + n*52;
-}
-function nr(l){ return l===0 ? 13 : l===8 ? 12 : l===7 ? 12 : 9; }
-function gk(l,n){ return l+'-'+n; }
-
-function hexRgb(hex){
-  return [parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];
-}
+function lx(l){return 28+l*(W-56)/(LAYERS.length-1)}
+function ny(l,n){const c=LAYERS[l].nodes,sp=(c-1)*40;return H/2-sp/2+n*40}
+function nr(l){return l===0||l===8?11:l===7?10:8}
+function gk(l,n){return l+'-'+n}
+function hr(hex){return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)]}
 
 function draw(){
   ctx.clearRect(0,0,W,H);
-
-  // Subtle dot grid
-  ctx.fillStyle='rgba(30,30,60,0.18)';
-  for(let x=0;x<W;x+=26)for(let y=0;y<H;y+=26){
-    ctx.beginPath();ctx.arc(x,y,0.8,0,Math.PI*2);ctx.fill();
-  }
-
-  // Connections
+  ctx.fillStyle='rgba(24,24,32,0.3)';
+  for(let x=0;x<W;x+=24)for(let y=0;y<H;y+=24){ctx.beginPath();ctx.arc(x,y,0.7,0,Math.PI*2);ctx.fill();}
   for(let l=0;l<LAYERS.length-1;l++){
     for(let n=0;n<LAYERS[l].nodes;n++){
       for(let m=0;m<LAYERS[l+1].nodes;m++){
         const x1=lx(l),y1=ny(l,n),x2=lx(l+1),y2=ny(l+1,m);
-        const g1=activations[gk(l,n)]||0;
-        const g2=activations[gk(l+1,m)]||0;
-        const bright=Math.max(g1,g2);
+        const g=Math.max(acts[gk(l,n)]||0,acts[gk(l+1,m)]||0);
         ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
-        if(bright>0.08){
-          const [r,g,b]=hexRgb(LAYERS[l].color);
-          ctx.strokeStyle=`rgba(${r},${g},${b},${Math.min(0.6,bright*0.45)})`;
-          ctx.lineWidth=0.7+bright*0.8;
-        } else {
-          ctx.strokeStyle='rgba(35,35,70,0.25)';
-          ctx.lineWidth=0.4;
-        }
-        ctx.stroke();
+        ctx.strokeStyle=g>0.08?`rgba(107,143,255,${Math.min(0.5,g*0.4)})`:'rgba(32,32,44,0.3)';
+        ctx.lineWidth=g>0.08?0.6+g*0.7:0.3;ctx.stroke();
       }
     }
   }
-
-  // Traveling signals
   signals.forEach(s=>{
     const x1=lx(s.fl),y1=ny(s.fl,s.fn),x2=lx(s.tl),y2=ny(s.tl,s.tn);
-    const px=x1+(x2-x1)*s.t, py=y1+(y2-y1)*s.t;
-    const [r,g,b]=hexRgb(s.col);
-    // Trail
-    for(let i=5;i>=0;i--){
-      const tt=Math.max(0,s.t-i*0.04);
-      const tx=x1+(x2-x1)*tt, ty=y1+(y2-y1)*tt;
-      ctx.beginPath();ctx.arc(tx,ty,2.2-i*0.2,0,Math.PI*2);
-      ctx.fillStyle=`rgba(${r},${g},${b},${(0.5-i*0.08)})`;
-      ctx.fill();
-    }
-    // Head glow
-    ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);
-    ctx.fillStyle=`rgba(${r},${g},${b},0.9)`;ctx.fill();
-    ctx.beginPath();ctx.arc(px,py,2,0,Math.PI*2);
-    ctx.fillStyle='#ffffff';ctx.fill();
+    const px=x1+(x2-x1)*s.t,py=y1+(y2-y1)*s.t;
+    const [r,g,b]=hr(s.col);
+    for(let i=4;i>=0;i--){const tt=Math.max(0,s.t-i*0.045);const tx=x1+(x2-x1)*tt,ty=y1+(y2-y1)*tt;ctx.beginPath();ctx.arc(tx,ty,2-i*0.2,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${0.45-i*0.08})`;ctx.fill();}
+    ctx.beginPath();ctx.arc(px,py,3.5,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},0.95)`;ctx.fill();
+    ctx.beginPath();ctx.arc(px,py,1.5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
   });
-
-  // Neurons
   for(let l=0;l<LAYERS.length;l++){
-    const layer=LAYERS[l];
-    for(let n=0;n<layer.nodes;n++){
+    const lay=LAYERS[l];
+    for(let n=0;n<lay.nodes;n++){
       const x=lx(l),y=ny(l,n),r=nr(l);
-      const key=gk(l,n);
-      const glow=activations[key]||0;
-      const isHov=hovered&&hovered.l===l&&hovered.n===n;
-      const [rr,gg,bb]=hexRgb(layer.color);
-
-      // Glow halo
-      if(glow>0.04||isHov){
-        const haloR = r + 3 + glow*9;
-        ctx.beginPath();ctx.arc(x,y,haloR,0,Math.PI*2);
-        ctx.fillStyle=`rgba(${rr},${gg},${bb},${isHov?0.12:glow*0.18})`;
-        ctx.fill();
-      }
-
-      // Outer ring (always visible)
-      ctx.beginPath();ctx.arc(x,y,r+2,0,Math.PI*2);
-      ctx.strokeStyle=`rgba(${rr},${gg},${bb},${0.15+glow*0.5})`;
-      ctx.lineWidth=0.5;ctx.stroke();
-      // Define nodeCol early for halo use (reassigned below for core)
-      const _nc=layer.nodeColors?layer.nodeColors[n]:layer.color;void _nc;
-
-      // Use per-node color if available (Decision layer)
-      const nodeCol=layer.nodeColors?layer.nodeColors[n]:layer.color;
-      const [nr2,ng2,nb2]=hexRgb(nodeCol);
-      // Core
+      const key=gk(l,n),glow=acts[key]||0;
+      const isH=hov&&hov.l===l&&hov.n===n;
+      const [rr,gg,bb]=hr(lay.col);
+      if(glow>0.04||isH){ctx.beginPath();ctx.arc(x,y,r+3+glow*8,0,Math.PI*2);ctx.fillStyle=`rgba(${rr},${gg},${bb},${isH?0.1:glow*0.15})`;ctx.fill();}
+      ctx.beginPath();ctx.arc(x,y,r+1.5,0,Math.PI*2);ctx.strokeStyle=`rgba(${rr},${gg},${bb},${0.12+glow*0.45})`;ctx.lineWidth=0.5;ctx.stroke();
       ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
-      const fill = glow>0.05 ? `rgba(${nr2},${ng2},${nb2},${0.2+glow*0.7})` :
-                   isHov     ? `rgba(${nr2},${ng2},${nb2},0.3)` :
-                                `rgba(${nr2},${ng2},${nb2},0.07)`;
-      ctx.fillStyle=fill;ctx.fill();
-      ctx.strokeStyle=`rgba(${nr2},${ng2},${nb2},${isHov?0.8:0.3+glow*0.5})`;
-      ctx.lineWidth=glow>0.1?1.2:0.6;ctx.stroke();
-
-      // Active dot center
-      if(glow>0.3){
-        ctx.beginPath();ctx.arc(x,y,r*0.4,0,Math.PI*2);
-        ctx.fillStyle=`rgba(${rr},${gg},${bb},${glow*0.8})`;ctx.fill();
-      }
+      ctx.fillStyle=glow>0.05?`rgba(${rr},${gg},${bb},${0.18+glow*0.65})`:isH?`rgba(${rr},${gg},${bb},0.2)`:`rgba(${rr},${gg},${bb},0.07)`;
+      ctx.fill();
+      ctx.strokeStyle=`rgba(${rr},${gg},${bb},${isH?0.75:0.25+glow*0.5})`;ctx.lineWidth=0.7;ctx.stroke();
+      if(glow>0.35){ctx.beginPath();ctx.arc(x,y,r*0.4,0,Math.PI*2);ctx.fillStyle=`rgba(${rr},${gg},${bb},${glow*0.7})`;ctx.fill();}
     }
+    const [rr,gg,bb]=hr(lay.col);
+    const maxY=ny(l,lay.nodes-1)+nr(l)+8;
+    ctx.font=`400 8px 'DM Mono',monospace`;ctx.textAlign='center';
+    ctx.fillStyle=`rgba(${rr},${gg},${bb},0.5)`;ctx.fillText(lay.name,lx(l),maxY+12);
+    ctx.fillStyle='rgba(60,60,80,0.5)';ctx.fillText(lay.nodes+'N',lx(l),maxY+22);
   }
-
-  // Layer labels
-  ctx.textAlign='center';
-  for(let l=0;l<LAYERS.length;l++){
-    const layer=LAYERS[l];
-    const [rr,gg,bb]=hexRgb(layer.color);
-    const maxY=ny(l,layer.nodes-1)+nr(l)+8;
-    ctx.font=`500 8.5px 'DM Mono',monospace`;
-    ctx.fillStyle=`rgba(${rr},${gg},${bb},0.55)`;
-    ctx.fillText(layer.name,lx(l),maxY+12);
-    ctx.font=`400 7.5px 'DM Mono',monospace`;
-    ctx.fillStyle='rgba(80,80,120,0.4)';
-    ctx.fillText(layer.nodes+'N',lx(l),maxY+22);
-  }
-
-  // Node sub-labels for Input and Decision layers
-  for(let l=0;l<LAYERS.length;l++){
-    const layer=LAYERS[l];
-    if(!layer.nodeLabels)continue;
-    for(let n=0;n<layer.nodes;n++){
-      const x=lx(l), y=ny(l,n), r=nr(l);
-      const col=layer.nodeColors?layer.nodeColors[n]:layer.color;
-      const [rr,gg,bb]=hexRgb(col);
-      const glow=activations[gk(l,n)]||0;
-      const labelLines=layer.nodeLabels[n].split('\n');
-      ctx.font=`500 7.5px 'DM Mono',monospace`;
-      ctx.textAlign='center';
-      const labelX = l===0 ? x - r - 5 : x + r + 5;
-      ctx.textAlign = l===0 ? 'right' : 'left';
-      labelLines.forEach((line,i)=>{
-        ctx.fillStyle=`rgba(${rr},${gg},${bb},${0.45+glow*0.4})`;
-        ctx.fillText(line, labelX, y - (labelLines.length-1)*6 + i*12);
-      });
-    }
-  }
-
-  // Decision output labels (one per neuron)
-  const decLabels=['Approve','Review','Reject'];
-  const decCols=['#40df90','#f5a623','#ff6b6b'];
-  for(let n=0;n<3;n++){
-    const act=activations[gk(7,n)]||0;
-    if(act>0.2){
-      const x=lx(7)+nr(7)+6, y=ny(7,n);
-      ctx.font=`500 8px 'DM Mono',monospace`;
-      ctx.fillStyle=decCols[n]+'cc';
-      ctx.textAlign='left';
-      ctx.fillText(decLabels[n],x,y+3);
-    }
-  }
-
-  // Decay activations
-  for(const k of Object.keys(activations)){
-    activations[k]*=0.82;
-    if(activations[k]<0.005)delete activations[k];
-  }
+  for(const k of Object.keys(acts)){acts[k]*=0.88;if(acts[k]<0.005)delete acts[k];}
 }
 
-function fireSignal(fl,fn){
+function fire(fl,fn){
   if(fl>=LAYERS.length-1)return;
-  activations[gk(fl,fn)]=1.0;
-  const nextN=LAYERS[fl+1].nodes;
-  const count=1;
-  const used=new Set();
-  while(used.size<count){used.add(Math.floor(Math.random()*nextN));}
-  used.forEach(tn=>{
-    signals.push({fl,fn,tl:fl+1,tn,t:0,speed:(0.007+Math.random()*0.006)*speed,col:LAYERS[fl].color});
-  });
+  acts[gk(fl,fn)]=1.0;
+  const nt=LAYERS[fl+1].nodes;
+  const tn=Math.floor(Math.random()*nt);
+  signals.push({fl,fn,tl:fl+1,tn,t:0,speed:(0.004+Math.random()*0.003)*speed,col:LAYERS[fl].col});
 }
 
 function loop(){
   frame++;
   signals=signals.filter(s=>{
     s.t+=s.speed;
-    if(s.t>=1){
-      activations[gk(s.tl,s.tn)]=1.0;
-      if(playing&&s.tl<LAYERS.length-1)setTimeout(()=>fireSignal(s.tl,s.tn),300+Math.random()*150);
-      else if(s.tl===LAYERS.length-1){
-        document.getElementById('aoStage').textContent='Decision rendered → Report generated';
-      }
-      return false;
-    }
+    if(s.t>=1){acts[gk(s.tl,s.tn)]=1.0;if(playing&&s.tl<LAYERS.length-1)setTimeout(()=>fire(s.tl,s.tn),280+Math.random()*120);return false;}
     return true;
   });
-  if(playing&&frame%Math.round(320/speed)===0){
-    const n=Math.floor(Math.random()*LAYERS[0].nodes);
-    fireSignal(0,n);
-    document.getElementById('aoStage').textContent=`Processing claim · ${LAYERS[0].name} → ${LAYERS[1].name}...`;
-  }
-  draw();
-  requestAnimationFrame(loop);
+  if(playing&&frame%Math.round(300/speed)===0)fire(0,Math.floor(Math.random()*LAYERS[0].nodes));
+  draw();requestAnimationFrame(loop);
 }
 
 canvas.addEventListener('mousemove',e=>{
-  const rect=canvas.getBoundingClientRect();
-  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const rect=canvas.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
   let found=null;
-  for(let l=0;l<LAYERS.length&&!found;l++){
-    for(let n=0;n<LAYERS[l].nodes;n++){
-      const x=lx(l),y=ny(l,n),r=nr(l)+7;
-      if((mx-x)**2+(my-y)**2<r*r){found={l,n};break;}
-    }
-  }
-  hovered=found;
-  canvas.style.cursor=found?'pointer':'crosshair';
-  if(found){
-    const lay=LAYERS[found.l];
-    const nodeLabel=lay.nodeLabels?lay.nodeLabels[found.n].replace('\n',' '):null;
-    const dispName=nodeLabel?`${lay.name} · ${nodeLabel}`:`${lay.name} (L${found.l+1}/${LAYERS.length})`;
-    document.getElementById('nnLayer').textContent=dispName;
-    document.getElementById('nnFunc').textContent=lay.label;
-    const act=activations[gk(found.l,found.n)]||0;
-    document.getElementById('nnAct').textContent=`${Math.round(act*100)}% activated`;
-    const nodeCol=lay.nodeColors?lay.nodeColors[found.n]:lay.color;
-    document.getElementById('nnLayer').style.color=nodeCol;
-  } else {
-    document.getElementById('nnLayer').textContent='—';
-    document.getElementById('nnLayer').style.color='var(--blue)';
-    document.getElementById('nnFunc').textContent='Hover a neuron';
-    document.getElementById('nnAct').textContent='—';
-  }
+  for(let l=0;l<LAYERS.length&&!found;l++)for(let n=0;n<LAYERS[l].nodes;n++){const r=nr(l)+7;if((mx-lx(l))**2+(my-ny(l,n))**2<r*r){found={l,n};break;}}
+  hov=found;canvas.style.cursor=found?'pointer':'crosshair';
+  if(found){const lay=LAYERS[found.l];document.getElementById('niLayer').textContent=`${lay.name} (L${found.l+1})`;document.getElementById('niFunc').textContent=lay.label;document.getElementById('niAct').textContent=`${Math.round((acts[gk(found.l,found.n)]||0)*100)}%`;document.getElementById('niLayer').style.color=lay.col;}
+  else{document.getElementById('niLayer').textContent='—';document.getElementById('niLayer').style.color='var(--blue)';document.getElementById('niFunc').textContent='Hover a neuron';document.getElementById('niAct').textContent='—';}
 });
-
-canvas.addEventListener('click',e=>{
-  if(!hovered)return;
-  fireSignal(hovered.l,hovered.n);
-  activations[gk(hovered.l,hovered.n)]=1.0;
-});
-
-canvas.addEventListener('mouseleave',()=>{hovered=null;});
-
-function nnToggle(){
-  playing=!playing;
-  document.getElementById('aoBtnPlay').textContent=playing?'⏸ Pause':'▶ Play';
-}
-function nnSpeed(){
-  speedIdx=(speedIdx+1)%speeds.length;
-  speed=speeds[speedIdx];
-  document.getElementById('aoBtnSpeed').textContent=speed+'× speed';
-  signals.forEach(s=>s.speed=(0.007+Math.random()*0.006)*speed);
-}
-function nnReset(){
-  signals=[];activations={};
-  setTimeout(()=>fireSignal(0,Math.floor(Math.random()*LAYERS[0].nodes)),400);
-}
-
-window.addEventListener('resize',()=>{resize();draw();});
+canvas.addEventListener('click',()=>{if(hov)fire(hov.l,hov.n);});
+canvas.addEventListener('mouseleave',()=>{hov=null;});
+function nnToggle(){playing=!playing;document.getElementById('btnPlay').textContent=playing?'⏸ pause':'▶ play';}
+function nnSpeed(){speedIdx=(speedIdx+1)%speeds.length;speed=speeds[speedIdx];document.getElementById('btnSpeed').textContent=speed+'× speed';signals.forEach(s=>s.speed=(0.004+Math.random()*0.003)*speed);}
+function nnReset(){signals=[];acts={};setTimeout(()=>fire(0,1),400);}
+window.addEventListener('resize',()=>{resize();});
 resize();
-setTimeout(()=>fireSignal(0,1),800);
+setTimeout(()=>fire(0,1),800);
 loop();
 
-// Stats
 const claims=JSON.parse(localStorage.getItem('claimiq_claims')||'[]');
-document.getElementById('sT').textContent=claims.length;
-
-// API health
+document.getElementById('sTotal').textContent=claims.length;
 fetch(`${API}/health`).then(r=>r.json()).then(d=>{
-  document.getElementById('ndot').style.cssText='width:6px;height:6px;border-radius:50%;background:#22d37a;box-shadow:0 0 8px #22d37a';
-  document.getElementById('ntxt').textContent=`API Live · ${d.rules_loaded} rules`;
-  toast('ClaimIQ connected · '+d.rules_loaded+' policy rules loaded');
+  document.getElementById('dot').style.background='var(--green)';
+  document.getElementById('atxt').textContent=`Live · ${d.rules_loaded} rules`;
+  toast(`ClaimIQ connected · ${d.rules_loaded} rules`,'ok');
 }).catch(()=>{
-  document.getElementById('ndot').style.background='#ff6b6b';
-  document.getElementById('ntxt').textContent='API Offline';
-  toast('Cannot reach API','err');
+  document.getElementById('dot').style.cssText='background:var(--red);animation:none';
+  document.getElementById('atxt').textContent='Offline';
 });
 </script>
 </body>
