@@ -1,249 +1,665 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>ClaimIQ — Dashboard</title>
-
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Fraunces:wght@300;400;500&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0b0f1a;
-  --glass:rgba(255,255,255,0.05);
-  --border:rgba(255,255,255,0.08);
-  --text:#e5e7eb;
-  --muted:#94a3b8;
-  --blue:#3b82f6;
-  --purple:#8b5cf6;
-  --green:#22c55e;
-  --red:#ef4444;
-  --amber:#f59e0b;
-}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--cream:#f6f4ee;--white:#fff;--paper:#faf9f6;--stone:#eae8e0;--ash:#d8d6cc;--ink:#18181a;--ink2:#4a4845;--ink3:#8a8780;--ink4:#b8b5ac;--blue:#1e40af;--blue-l:#dbeafe;--blue-b:#93c5fd;--purple:#5b21b6;--purple-l:#ede9fe;--green:#065f46;--green-l:#d1fae5;--green-b:#6ee7b7;--red:#991b1b;--red-l:#fee2e2;--red-b:#fca5a5;--amber:#78350f;--amber-l:#fef3c7;--amber-b:#fcd34d;--serif:'Fraunces',Georgia,serif;--mono:'DM Mono','Courier New',monospace;--sans:'DM Sans',system-ui,sans-serif;--nav-h:60px;--shadow:0 4px 16px rgba(0,0,0,.08);--shadow-sm:0 1px 3px rgba(0,0,0,.06)}
 
-*{margin:0;padding:0;box-sizing:border-box}
-
-body{
-  font-family:'DM Sans',sans-serif;
-  color:var(--text);
+/* ── BACKGROUND SYSTEM ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
   background:
-    linear-gradient(rgba(11,15,26,0.9), rgba(11,15,26,0.95)),
-    url("https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=1920&auto=format&fit=crop");
-  background-size:cover;
+    radial-gradient(ellipse 900px 600px at 15% 20%, rgba(30,64,175,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 500px at 85% 75%, rgba(91,33,182,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 400px at 50% 50%, rgba(6,95,70,0.025) 0%, transparent 70%);
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    radial-gradient(circle, rgba(24,24,26,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+  pointer-events: none;
+}
+.bg-geo {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bg-geo svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
-/* NAV */
-nav{
-  position:fixed;
-  width:100%;
-  top:0;
-  display:flex;
-  justify-content:space-between;
-  padding:18px 40px;
-  backdrop-filter:blur(20px);
-  background:rgba(0,0,0,0.4);
-  border-bottom:1px solid var(--border);
-  z-index:100;
-}
+html{font-size:14px}body{background:var(--cream);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--ash);border-radius:2px}
+nav{position:sticky;top:0;z-index:100;height:var(--nav-h);background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--stone);display:flex;align-items:center;justify-content:space-between;padding:0 32px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}.nav-logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#1e40af,#5b21b6);display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--mono);font-size:11px;font-weight:500}.nav-name{font-family:var(--serif);font-size:1.1rem;color:var(--ink)}.nav-sub{font-family:var(--mono);font-size:.55rem;color:var(--ink3);margin-top:-1px}
+.nav-links{display:flex;align-items:center;gap:2px}.nav-link{padding:7px 14px;border-radius:7px;text-decoration:none;font-size:.78rem;font-weight:500;color:var(--ink2);transition:all .15s}.nav-link:hover{background:var(--stone)}.nav-link.active{background:var(--blue-l);color:var(--blue)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.api-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:var(--stone);font-family:var(--mono);font-size:.6rem;color:var(--ink3)}.status-dot{width:6px;height:6px;border-radius:50%;background:#16a34a;animation:pulse 2.5s infinite;flex-shrink:0}.status-dot.off{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px #dcfce7}50%{box-shadow:0 0 0 4px #dcfce7}}
+.btn-p{padding:8px 18px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-family:var(--sans);font-size:.78rem;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .2s}.btn-p:hover{background:#1d3a9e}
 
-/* LAYOUT */
-.container{
-  padding-top:110px;
-  max-width:1200px;
-  margin:auto;
-  padding-left:20px;
-  padding-right:20px;
-}
-
-/* CARDS */
-.card{
-  background:var(--glass);
-  border:1px solid var(--border);
-  backdrop-filter:blur(16px);
-  border-radius:16px;
-  padding:20px;
-  transition:.3s;
-}
-.card:hover{
-  transform:translateY(-5px);
-}
+/* PAGE LAYOUT */
+.page{max-width:1300px;margin:0 auto;padding:28px 32px}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.page-title{font-family:var(--serif);font-size:1.6rem;font-weight:400;letter-spacing:-.02em}
+.page-sub{font-family:var(--mono);font-size:.62rem;color:var(--ink3);margin-top:2px}
 
 /* STATS */
-.stats{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:15px;
-  margin-bottom:25px;
-}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--stone);border:1px solid var(--stone);border-radius:14px;overflow:hidden;margin-bottom:24px}
+.stat-box{background:var(--white);padding:18px 20px}.stat-val{font-family:var(--serif);font-size:2rem;font-weight:500;line-height:1}.stat-lbl{font-family:var(--mono);font-size:.58rem;color:var(--ink3);margin-top:4px;text-transform:uppercase;letter-spacing:.1em}
+.s-blue .stat-val{color:var(--blue)}.s-green .stat-val{color:var(--green)}.s-red .stat-val{color:var(--red)}.s-amber .stat-val{color:var(--amber)}
 
-.stat-value{
-  font-size:1.8rem;
-  font-weight:600;
-}
+/* TWO-COL */
+.two-col{display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start}
 
-.stat-label{
-  color:var(--muted);
-  font-size:.8rem;
-}
+/* CLAIMS LIST */
+.panel{background:var(--white);border:1px solid var(--stone);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.panel-header{padding:16px 18px;border-bottom:1px solid var(--stone);background:var(--paper);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.claims-list{display:flex;flex-direction:column;overflow-y:auto;max-height:calc(100vh - 260px)}
+.claim-card{padding:14px 16px;border-bottom:1px solid var(--paper);cursor:pointer;transition:all .15s}
+.claim-card:hover{background:var(--paper)}.claim-card.active{background:var(--blue-l);border-left:3px solid var(--blue)}
+.claim-card:last-child{border-bottom:none}
+.cc-id{font-family:var(--mono);font-size:.62rem;color:var(--ink3);margin-bottom:3px}
+.cc-notes{font-size:.76rem;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;margin-bottom:5px}
+.cc-codes{font-family:var(--mono);font-size:.6rem;color:var(--ink3);margin-bottom:5px}
+.cc-bottom{display:flex;align-items:center;justify-content:space-between}
+.badge{display:inline-flex;align-items:center;font-family:var(--mono);font-size:.58rem;font-weight:500;padding:3px 8px;border-radius:5px}
+.badge.approved{background:var(--green-l);color:var(--green);border:1px solid var(--green-b)}
+.badge.rejected{background:var(--red-l);color:var(--red);border:1px solid var(--red-b)}
+.badge.needs_review{background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-b)}
+.cbar-wrap{display:flex;align-items:center;gap:5px}.cbar{width:40px;height:3px;background:var(--stone);border-radius:2px;overflow:hidden}.cfill{height:100%;border-radius:2px}.cpct{font-family:var(--mono);font-size:.58rem;color:var(--ink3)}
+.empty-list{padding:40px 16px;text-align:center;color:var(--ink3)}.empty-list-icon{font-size:1.8rem;opacity:.3;margin-bottom:8px}.empty-list-t{font-family:var(--mono);font-size:.68rem}.empty-list-s{font-size:.7rem;color:var(--ink4);margin-top:4px}
 
-/* MAIN GRID */
-.grid{
-  display:grid;
-  grid-template-columns:300px 1fr;
-  gap:20px;
-}
+/* RESULT PANEL */
+.rp-empty{padding:60px 24px;text-align:center;color:var(--ink3)}.rp-empty-icon{font-size:2.4rem;opacity:.25;margin-bottom:10px}.rp-empty-t{font-family:var(--mono);font-size:.7rem}.rp-empty-s{font-size:.72rem;color:var(--ink4);margin-top:4px}
+.rp-body{padding:22px}
+.rp-header{margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--stone)}
+.rp-decision{font-family:var(--serif);font-size:2rem;font-style:italic;font-weight:400;line-height:1;letter-spacing:-.02em;margin-bottom:5px}
+.rp-meta{font-family:var(--mono);font-size:.68rem;color:var(--ink3)}
 
-/* CLAIM LIST */
-.claim{
-  padding:12px;
-  border-radius:10px;
-  margin-bottom:10px;
-  background:rgba(255,255,255,0.03);
-  cursor:pointer;
-  transition:.2s;
-}
-.claim:hover{
-  background:rgba(255,255,255,0.08);
-}
+/* REPORT BUTTON */
+.btn-report{width:100%;padding:11px;border-radius:9px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-family:var(--sans);font-size:.8rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-bottom:16px}
+.btn-report:hover{background:var(--blue);color:#fff}
 
-.badge{
-  padding:3px 8px;
-  border-radius:6px;
-  font-size:.7rem;
-}
+/* SUMMARY BOX */
+.sumbox{background:var(--paper);border:1px solid var(--stone);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--ink2);line-height:1.65}
 
-.approved{background:rgba(34,197,94,0.2);color:var(--green)}
-.rejected{background:rgba(239,68,68,0.2);color:var(--red)}
-.review{background:rgba(245,158,11,0.2);color:var(--amber)}
+/* FINDINGS */
+.findings-table{width:100%;border-collapse:collapse;margin-bottom:16px}
+.findings-table tr{border-bottom:1px solid var(--paper)}
+.findings-table tr:last-child{border:none}
+.findings-table td{padding:8px 0;font-size:.76rem;vertical-align:top}
+.findings-table td:first-child{font-family:var(--mono);font-size:.6rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;width:90px;padding-top:10px}
 
-/* DETAILS */
-.details h2{
-  font-family:'Fraunces',serif;
-  margin-bottom:10px;
-}
+/* CODES */
+.codes-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+.chip{background:var(--paper);border:1px solid var(--stone);border-radius:8px;padding:9px 11px}
+.chip-code{font-family:var(--mono);font-size:.85rem;font-weight:500;color:var(--blue)}.chip-code.cpt{color:var(--purple)}
+.chip-desc{font-size:.68rem;color:var(--ink2);margin-top:2px;line-height:1.3}
+.chip-conf{font-family:var(--mono);font-size:.58rem;color:var(--ink3);margin-top:3px}
 
-.code{
-  background:rgba(255,255,255,0.05);
-  padding:8px;
-  border-radius:8px;
-  margin-bottom:8px;
-}
+/* TABS */
+.tabs{display:flex;background:var(--paper);border:1px solid var(--stone);border-radius:9px;padding:3px;gap:2px;margin-bottom:14px}
+.tab{flex:1;padding:7px 6px;text-align:center;font-family:var(--mono);font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;color:var(--ink3);background:transparent;border:none;border-radius:7px;transition:all .2s;font-weight:500}
+.tab.active{background:var(--white);color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.tc{display:none}.tc.active{display:block}
 
-/* ANIMATION */
-.fade{
-  opacity:0;
-  transform:translateY(20px);
-  transition:all .7s ease;
-}
-.fade.show{
-  opacity:1;
-  transform:translateY(0);
-}
+/* RULES */
+.rule-row{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--paper)}
+.rule-row:last-child{border:none}
+.ri{width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0;margin-top:1px}
+.ri-ok{background:var(--green-l);color:var(--green);border:1px solid var(--green-b)}
+.ri-fail{background:var(--red-l);color:var(--red);border:1px solid var(--red-b)}
+.ri-warn{background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-b)}
+.rule-id{font-family:var(--mono);font-size:.68rem;font-weight:500}
+.rule-reason{font-size:.68rem;color:var(--ink3);line-height:1.4;margin-top:2px}
+
+/* EDGE */
+.edge-card{border-radius:8px;padding:9px 11px;margin-bottom:6px;border:1.5px solid}
+.edge-type{font-family:var(--mono);font-size:.65rem;font-weight:500;margin-bottom:3px}
+.edge-desc{font-size:.7rem;color:var(--ink2);line-height:1.4}
+.edge-rec{font-size:.68rem;font-style:italic;color:var(--ink);margin-top:5px;border-top:1px solid;padding-top:5px}
+
+/* ACTIONS */
+.action-list{display:flex;flex-direction:column;gap:6px}
+.action-item{display:flex;gap:10px;padding:10px 12px;border-radius:8px;border:1.5px solid;align-items:flex-start}
+.action-num{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.6rem;font-weight:700;flex-shrink:0;margin-top:1px}
+.action-text{font-size:.76rem;color:var(--ink);line-height:1.5}
+
+/* CHAIN */
+.chain-step{display:flex;gap:10px;padding:7px 0;position:relative}
+.chain-step::before{content:'';position:absolute;left:7px;top:22px;bottom:-7px;width:1px;background:var(--stone)}.chain-step:last-child::before{display:none}
+.chain-dot{width:16px;height:16px;border-radius:50%;background:var(--blue-l);border:2px solid var(--blue);flex-shrink:0;margin-top:2px}
+.chain-stage{font-family:var(--mono);font-size:.6rem;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+.chain-out{font-size:.7rem;color:var(--ink2);line-height:1.4;margin-top:2px}
+.chain-conf{font-family:var(--mono);font-size:.58rem;color:var(--ink3)}
+
+/* MOE STYLES */
+.moe-expert-card{background:var(--paper);border:1px solid var(--stone);border-radius:12px;margin-bottom:12px;overflow:hidden;transition:box-shadow .2s}
+.moe-expert-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.moe-expert-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;user-select:none}
+.moe-expert-left{display:flex;align-items:center;gap:10px}
+.moe-expert-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0}
+.moe-expert-name{font-size:.82rem;font-weight:600;color:var(--ink)}
+.moe-expert-assess{font-size:.7rem;color:var(--ink3);margin-top:2px;font-family:var(--mono)}
+.moe-expert-badges{display:flex;align-items:center;gap:6px}
+.moe-risk-badge{font-family:var(--mono);font-size:.58rem;font-weight:500;padding:3px 8px;border-radius:4px;border:1px solid}
+.moe-src-badge{font-family:var(--mono);font-size:.56rem;padding:2px 7px;border-radius:4px;background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b)}
+.moe-expand-btn{font-size:.7rem;color:var(--ink3);transition:transform .2s;flex-shrink:0}
+.moe-expert-body{display:none;border-top:1px solid var(--stone)}
+.moe-expert-body.open{display:block}
+.moe-section{padding:12px 14px;border-bottom:1px solid var(--paper)}
+.moe-section:last-child{border:none}
+.moe-section-title{font-family:var(--mono);font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:8px}
+.moe-flag{display:flex;gap:8px;padding:7px 9px;border-radius:7px;border:1px solid;margin-bottom:6px;font-size:.72rem;line-height:1.45}
+.moe-flag:last-child{margin:0}
+.moe-flag.high{background:var(--red-l);border-color:var(--red-b);color:var(--red)}
+.moe-flag.moderate{background:var(--amber-l);border-color:var(--amber-b);color:var(--amber)}
+.moe-flag.low{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue)}
+.moe-rec{display:flex;gap:8px;padding:6px 9px;font-size:.72rem;color:var(--ink2);line-height:1.45;border-bottom:1px solid var(--paper)}
+.moe-rec:last-child{border:none}
+.moe-rec-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:5px}
+.moe-narrative{font-size:.78rem;color:var(--ink2);line-height:1.75;padding:14px;background:var(--white);border-radius:8px;border:1px solid var(--stone);font-style:italic}
+.moe-code-chip{display:inline-flex;align-items:center;gap:6px;background:var(--purple-l);border:1px solid;border-color:rgba(91,33,182,0.2);border-radius:7px;padding:6px 10px;margin:0 4px 4px 0}
+.moe-code-val{font-family:var(--mono);font-size:.72rem;font-weight:500;color:var(--purple)}
+.moe-code-desc{font-size:.68rem;color:var(--ink2)}
+.moe-router-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--paper);font-size:.72rem}
+.moe-router-row:last-child{border:none}
+.moe-router-name{width:90px;font-family:var(--mono);font-size:.65rem;color:var(--ink2);flex-shrink:0}
+.moe-router-bar-wrap{flex:1;height:5px;background:var(--stone);border-radius:3px;overflow:hidden}
+.moe-router-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--purple))}
+.moe-router-score{font-family:var(--mono);font-size:.62rem;color:var(--ink3);width:36px;text-align:right}
+.moe-router-active{font-family:var(--mono);font-size:.56rem;padding:1px 6px;border-radius:3px;background:var(--green-l);color:var(--green);border:1px solid var(--green-b)}
+.moe-summary-banner{background:linear-gradient(135deg,rgba(30,64,175,0.05),rgba(91,33,182,0.05));border:1px solid rgba(91,33,182,0.15);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.moe-summary-title{font-family:var(--mono);font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--purple);margin-bottom:6px}
+.moe-summary-text{font-size:.75rem;color:var(--ink2);line-height:1.55}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;z-index:999;padding:9px 15px;border-radius:8px;font-family:var(--mono);font-size:.68rem;border:1px solid;transform:translateY(50px);opacity:0;transition:all .3s;box-shadow:var(--shadow)}
+.toast.show{transform:translateY(0);opacity:1}.toast.ok{background:var(--green-l);border-color:var(--green-b);color:var(--green)}.toast.err{background:var(--red-l);border-color:var(--red-b);color:var(--red)}.toast.info{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue)}
 </style>
 </head>
-
 <body>
+<div class="toast" id="toast"></div>
 
 <nav>
-  <div>ClaimIQ Dashboard</div>
-  <div>
-    <a href="index.html" style="color:var(--muted)">Home</a>
-    <a href="submit.html" style="color:var(--muted)">Submit</a>
-    <a href="imaging.html" style="color:var(--muted)">Imaging</a>
+  <a class="nav-brand" href="index.html">
+    <div class="nav-logo">Rx</div>
+    <div><div class="nav-name">ClaimIQ</div><div class="nav-sub">Healthcare Claims Adjudication</div></div>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html">Overview</a>
+    <a class="nav-link" href="submit.html">Submit Claim</a>
+    <a class="nav-link active" href="dashboard.html">Dashboard</a>
+    <a class="nav-link" href="imaging.html">Imaging</a>
+  </div>
+  <div class="nav-right">
+    <div class="api-pill"><div class="status-dot" id="dot"></div><span id="apiTxt">Connecting...</span></div>
+    <a class="btn-p" href="submit.html">+ New Claim</a>
   </div>
 </nav>
 
-<div class="container">
-
-  <!-- STATS -->
-  <div class="stats fade">
-    <div class="card">
-      <div class="stat-value" id="s1">0</div>
-      <div class="stat-label">Total Claims</div>
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Claims Dashboard</div>
+      <div class="page-sub">All adjudicated claims · click any claim to view full result</div>
     </div>
-    <div class="card">
-      <div class="stat-value" id="s2">0</div>
-      <div class="stat-label">Approved</div>
-    </div>
-    <div class="card">
-      <div class="stat-value" id="s3">0</div>
-      <div class="stat-label">Rejected</div>
-    </div>
-    <div class="card">
-      <div class="stat-value" id="s4">0</div>
-      <div class="stat-label">Needs Review</div>
-    </div>
+    <button onclick="clearAll()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--stone);background:transparent;color:var(--ink3);font-family:var(--mono);font-size:.62rem;cursor:pointer">Clear all</button>
   </div>
 
-  <!-- GRID -->
-  <div class="grid">
-
-    <!-- LEFT: CLAIM LIST -->
-    <div class="card fade">
-      <h3>Claims</h3>
-
-      <div class="claim">
-        Claim #001 <span class="badge approved">Approved</span>
-      </div>
-      <div class="claim">
-        Claim #002 <span class="badge rejected">Rejected</span>
-      </div>
-      <div class="claim">
-        Claim #003 <span class="badge review">Review</span>
-      </div>
-
-    </div>
-
-    <!-- RIGHT: DETAILS -->
-    <div class="card details fade">
-      <h2>Claim Details</h2>
-
-      <p style="color:var(--muted)">Diagnosis:</p>
-      <div class="code">Type 2 Diabetes</div>
-
-      <p style="color:var(--muted)">ICD Code:</p>
-      <div class="code">E11</div>
-
-      <p style="color:var(--muted)">CPT Code:</p>
-      <div class="code">83036</div>
-
-      <p style="color:var(--muted)">AI Decision:</p>
-      <div class="code" style="color:var(--green)">Approved</div>
-
-    </div>
-
+  <div class="stat-row">
+    <div class="stat-box s-blue"><div class="stat-val" id="sT">0</div><div class="stat-lbl">Total Claims</div></div>
+    <div class="stat-box s-green"><div class="stat-val" id="sA">0</div><div class="stat-lbl">Approved</div></div>
+    <div class="stat-box s-red"><div class="stat-val" id="sR">0</div><div class="stat-lbl">Rejected</div></div>
+    <div class="stat-box s-amber"><div class="stat-val" id="sV">0</div><div class="stat-lbl">Under Review</div></div>
   </div>
 
+  <div class="two-col">
+    <!-- LEFT: Claims list -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Claims History</div>
+        <span id="claimsCount" style="font-family:var(--mono);font-size:.6rem;color:var(--ink3)">0 claims</span>
+      </div>
+      <div class="claims-list" id="claimsList">
+        <div class="empty-list">
+          <div class="empty-list-icon">📋</div>
+          <div class="empty-list-t">No claims yet</div>
+          <div class="empty-list-s"><a href="submit.html" style="color:var(--blue)">Submit a claim</a> to see it here</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Result panel -->
+    <div class="panel" id="resultPanel">
+      <div class="panel-header">
+        <div class="panel-title">Adjudication Result</div>
+        <span id="rpClaimId" style="font-family:var(--mono);font-size:.6rem;color:var(--ink3)"></span>
+      </div>
+      <div id="rpContent">
+        <div class="rp-empty">
+          <div class="rp-empty-icon">⬡</div>
+          <div class="rp-empty-t">Select a claim to view result</div>
+          <div class="rp-empty-s">Full reasoning · codes · audit trail</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-/* SCROLL ANIMATION */
-const observer = new IntersectionObserver(entries=>{
-  entries.forEach(e=>{
-    if(e.isIntersecting){
-      e.target.classList.add('show');
-    }
-  });
-});
-document.querySelectorAll('.fade').forEach(el=>observer.observe(el));
+const API=sessionStorage.getItem('claimiq_api')||'http://localhost:8000';
+let claims=[],currentIdx=null;
 
-/* COUNTER ANIMATION */
-function animate(id,val){
-  let el=document.getElementById(id);
-  let start=0;
-  let step=()=>{
-    start+=val/30;
-    el.innerText=Math.floor(start);
-    if(start<val) requestAnimationFrame(step);
-  }
-  step();
+function toast(m,t='info'){const e=document.getElementById('toast');e.textContent=m;e.className=`toast ${t} show`;setTimeout(()=>e.classList.remove('show'),3200)}
+
+function loadClaims(){
+  claims=JSON.parse(localStorage.getItem('claimiq_claims')||'[]');
+  const t=claims.length,a=claims.filter(c=>c.decision==='approved').length;
+  const r=claims.filter(c=>c.decision==='rejected').length,v=t-a-r;
+  document.getElementById('sT').textContent=t;
+  document.getElementById('sA').textContent=a;
+  document.getElementById('sR').textContent=r;
+  document.getElementById('sV').textContent=v;
+  document.getElementById('claimsCount').textContent=`${t} claim${t!==1?'s':''}`;
+  renderList();
+  // Auto-select latest result if redirected from submit
+  const latest=sessionStorage.getItem('latest_result');
+  if(latest){try{const d=JSON.parse(latest);const idx=claims.findIndex(c=>c.claim_id===d.claim_id);if(idx>=0)selectClaim(idx);}catch(e){}}
 }
 
-animate("s1",120);
-animate("s2",80);
-animate("s3",20);
-animate("s4",20);
-</script>
+function clearAll(){
+  if(!confirm('Clear all claims history?'))return;
+  localStorage.removeItem('claimiq_claims');
+  claims=[];currentIdx=null;
+  loadClaims();
+  document.getElementById('rpContent').innerHTML=`<div class="rp-empty"><div class="rp-empty-icon">⬡</div><div class="rp-empty-t">No claims</div></div>`;
+  document.getElementById('rpClaimId').textContent='';
+}
 
+function renderList(){
+  const el=document.getElementById('claimsList');
+  if(!claims.length){
+    el.innerHTML=`<div class="empty-list"><div class="empty-list-icon">📋</div><div class="empty-list-t">No claims yet</div><div class="empty-list-s"><a href="submit.html" style="color:var(--blue)">Submit a claim</a> to see it here</div></div>`;
+    return;
+  }
+  el.innerHTML=claims.map((c,i)=>{
+    const dec=c.decision,conf=Math.round(c.confidence_score*100);
+    const col=dec==='approved'?'#16a34a':dec==='rejected'?'#dc2626':'#d97706';
+    const icd=(c.icd10_codes||[]).map(x=>x.code).slice(0,3).join(' · ')||'—';
+    const cpt=(c.cpt_codes||[]).map(x=>x.code).slice(0,2).join(' · ')||'—';
+    return`<div class="claim-card${currentIdx===i?' active':''}" id="cc${i}" onclick="selectClaim(${i})">
+      <div class="cc-id">${c.claim_id}</div>
+      <div class="cc-notes">${(c._notes||'').slice(0,60)}...</div>
+      <div class="cc-codes">${icd} · <span style="color:var(--purple)">${cpt}</span></div>
+      <div class="cc-bottom">
+        <span class="badge ${dec}">${dec.replace('_',' ')}</span>
+        <div class="cbar-wrap"><div class="cbar"><div class="cfill" style="width:${conf}%;background:${col}"></div></div><span class="cpct">${conf}%</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectClaim(i){
+  currentIdx=i;
+  document.querySelectorAll('.claim-card').forEach((el,j)=>el.classList.toggle('active',j===i));
+  renderResult(claims[i]);
+  document.getElementById('rpClaimId').textContent=claims[i].claim_id;
+}
+
+function buildNarrative(d){
+  const dec=d.decision,conf=Math.round(d.confidence_score*100);
+  const blocking=(d.rule_evaluations||[]).filter(r=>!r.passed&&r.action==='reject');
+  const warnings=(d.rule_evaluations||[]).filter(r=>!r.passed&&r.action==='flag_review');
+  const edges=d.edge_cases||[];
+  if(dec==='approved')return`This claim has been <strong>approved</strong> with ${conf}% confidence. All ${(d.rule_evaluations||[]).length} policy rules passed and no clinical anomalies were detected.`;
+  if(dec==='rejected'){const p=blocking[0];return`This claim has been <strong>rejected</strong> with ${conf}% confidence. ${p?`Rule <strong>${p.rule_id}</strong>: ${p.reason}.`:''} Correct the issues and resubmit.`;}
+  const rs=[];if(warnings.length)rs.push(`${warnings.length} rule(s) require payer verification`);if(edges.length)rs.push(`${edges.length} anomaly(ies) detected`);
+  return`This claim requires <strong>manual review</strong> with ${conf}% confidence. ${rs.join('; ')}.`;
+}
+
+function buildActions(d){
+  const dec=d.decision,blocking=(d.rule_evaluations||[]).filter(r=>!r.passed&&r.action==='reject');
+  const warnings=(d.rule_evaluations||[]).filter(r=>!r.passed&&r.action==='flag_review'),edges=d.edge_cases||[];
+  const items=[];
+  const st=(p)=>({
+    critical:{bg:'var(--red-l)',bc:'var(--red-b)',nc:'var(--red)'},
+    high:{bg:'var(--red-l)',bc:'var(--red-b)',nc:'var(--red)'},
+    medium:{bg:'var(--amber-l)',bc:'var(--amber-b)',nc:'var(--amber)'},
+    info:{bg:'var(--blue-l)',bc:'var(--blue-b)',nc:'var(--blue)'},
+    low:{bg:'var(--paper)',bc:'var(--stone)',nc:'var(--ink3)'},
+  }[p]||{bg:'var(--paper)',bc:'var(--stone)',nc:'var(--ink3)'});
+
+  if(dec==='approved'){
+    items.push({p:'info',t:'Proceed to payment processing — all checks passed.'});
+    items.push({p:'info',t:`File audit record <strong>${d.audit_trace_id}</strong> with claim documentation.`});
+    items.push({p:'low',t:'No further clinical review required.'});
+  }else if(dec==='rejected'){
+    blocking.forEach(ev=>{
+      if(ev.rule_id.startsWith('COV'))items.push({p:'critical',t:`<strong>${ev.rule_id}</strong>: Coverage exclusion. Upgrade insurance plan or seek exception. ${ev.reason}`});
+      else if(ev.rule_id.startsWith('COMPAT'))items.push({p:'critical',t:`<strong>${ev.rule_id}</strong>: Obtain supporting diagnosis documentation. ${ev.reason}`});
+      else if(ev.rule_id.startsWith('AGE'))items.push({p:'critical',t:`<strong>${ev.rule_id}</strong>: Age restriction. Document medical exception if applicable. ${ev.reason}`});
+      else items.push({p:'critical',t:`<strong>${ev.rule_id}</strong>: ${ev.reason}`});
+    });
+    items.push({p:'high',t:'Correct ALL issues before resubmitting. Partial corrections will re-reject.'});
+    items.push({p:'low',t:`Reference audit <strong>${d.audit_trace_id}</strong> when resubmitting.`});
+  }else{
+    warnings.forEach(ev=>{if(ev.rule_id.startsWith('AUTH'))items.push({p:'high',t:`<strong>${ev.rule_id}</strong>: Submit prior authorization to payer before payment. ${ev.reason}`});else items.push({p:'medium',t:`<strong>${ev.rule_id}</strong>: ${ev.reason}`});});
+    edges.forEach(ec=>{
+      if(ec.type==='image_text_mismatch')items.push({p:'critical',t:`<strong>IMAGING MISMATCH</strong>: Imaging vs clinical text conflict. Radiologist review required.`});
+      else items.push({p:'medium',t:`<strong>${(ec.type||'').replace(/_/g,' ').toUpperCase()}</strong>: ${ec.description}`});
+    });
+    items.push({p:'high',t:'Route to clinical reviewer queue immediately. Do NOT process for payment.'});
+  }
+  return items.map((item,i)=>{const s=st(item.p);return`<div class="action-item" style="background:${s.bg};border-color:${s.bc}"><div class="action-num" style="background:${s.bg};color:${s.nc};border:1.5px solid ${s.nc}">${i+1}</div><div class="action-text">${item.t}</div></div>`;}).join('');
+}
+
+function renderNarrative(text){
+  if(!text)return '';
+  const lines=text.split('\n');
+  let html='',inList=false;
+  lines.forEach(line=>{
+    const t=line.trim();
+    if(t.startsWith('## ')){
+      if(inList){html+='</div>';inList=false;}
+      const title=t.slice(3);
+      const S={'Clinical Assessment':{c:'#1e40af',b:'rgba(30,64,175,0.07)',r:'rgba(30,64,175,0.2)'},
+               'Risk Flags':{c:'#991b1b',b:'rgba(153,27,27,0.06)',r:'rgba(153,27,27,0.2)'},
+               'Recommendations':{c:'#065f46',b:'rgba(6,95,70,0.06)',r:'rgba(6,95,70,0.2)'}};
+      const s=S[title]||{c:'var(--purple)',b:'rgba(91,33,182,0.06)',r:'rgba(91,33,182,0.2)'};
+      html+=`<div style="margin:12px 0 6px"><span style="font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:${s.c};background:${s.b};border-left:2px solid ${s.r};padding:3px 8px;border-radius:0 4px 4px 0">${title}</span></div>`;
+    }else if(t.startsWith('- ')){
+      if(!inList){html+='<div style="display:flex;flex-direction:column;gap:3px">';inList=true;}
+      html+=`<div style="display:flex;gap:7px;font-size:.73rem;color:var(--ink2);line-height:1.55;padding:3px 0"><div style="width:5px;height:5px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:6px"></div><div>${t.slice(2)}</div></div>`;
+    }else if(/^\d+\./.test(t)){
+      if(!inList){html+='<div style="display:flex;flex-direction:column;gap:3px">';inList=true;}
+      const m=t.match(/^(\d+)\.\s*(.*)/);
+      if(m)html+=`<div style="display:flex;gap:8px;font-size:.73rem;color:var(--ink2);line-height:1.55;padding:3px 0"><div style="font-family:var(--mono);font-size:.6rem;font-weight:600;color:var(--green);min-width:16px;padding-top:1px">${m[1]}.</div><div>${m[2]}</div></div>`;
+    }else if(t===''){
+      if(inList){html+='</div>';inList=false;}
+    }else{
+      if(inList){html+='</div>';inList=false;}
+      html+=`<div style="font-size:.76rem;color:var(--ink2);line-height:1.65;margin-bottom:3px">${t}</div>`;
+    }
+  });
+  if(inList)html+='</div>';
+  return html;
+}
+
+function buildMoE(d){
+  const moe = d.moe_analysis;
+  if(!moe||moe.skipped){
+    return `<div style="padding:24px;text-align:center;color:var(--ink3)">
+      <div style="font-size:1.4rem;opacity:.3;margin-bottom:8px">🧬</div>
+      <div style="font-family:var(--mono);font-size:.7rem;margin-bottom:4px">No expert analysis</div>
+      <div style="font-size:.72rem;color:var(--ink4)">${moe?moe.reason||'No experts activated for this claim':'MoE data not available — resubmit claim'}</div>
+    </div>`;
+  }
+
+  const EXPERT_ICONS={'oncology':'🔬','neurology':'🧠','cardiology':'❤️','radiology':'🩻','orthopedics':'🦴','psychiatry':'🧘'};
+  const RISK_STYLES={
+    critical:{bg:'var(--red-l)',bc:'var(--red-b)',col:'var(--red)'},
+    high:{bg:'var(--red-l)',bc:'var(--red-b)',col:'var(--red)'},
+    moderate:{bg:'var(--amber-l)',bc:'var(--amber-b)',col:'var(--amber)'},
+    low:{bg:'var(--green-l)',bc:'var(--green-b)',col:'var(--green)'},
+  };
+  const EXPERT_COLORS={
+    oncology:'#5b21b6',neurology:'#1e40af',cardiology:'#dc2626',
+    radiology:'#0369a1',orthopedics:'#065f46',psychiatry:'#78350f'
+  };
+  const EXPERT_BG={
+    oncology:'rgba(91,33,182,0.08)',neurology:'rgba(30,64,175,0.08)',cardiology:'rgba(220,38,38,0.08)',
+    radiology:'rgba(3,105,161,0.08)',orthopedics:'rgba(6,95,70,0.08)',psychiatry:'rgba(120,53,15,0.08)'
+  };
+
+  // Router scores panel
+  const routerRows = Object.entries(moe.router_scores||{}).sort((a,b)=>b[1]-a[1]).map(([name,score])=>{
+    const pct=Math.round(score*100);
+    const isActive=moe.activated_experts.includes(name);
+    return`<div class="moe-router-row">
+      <div class="moe-router-name">${name}</div>
+      <div class="moe-router-bar-wrap"><div class="moe-router-bar" style="width:${pct}%"></div></div>
+      <div class="moe-router-score">${pct}%</div>
+      ${isActive?'<div class="moe-router-active">active</div>':'<div style="width:38px"></div>'}
+    </div>`;
+  }).join('');
+
+  // Suggested codes
+  const sugCodes=(moe.suggested_codes||[]).map(c=>`
+    <div class="moe-code-chip">
+      <div class="moe-code-val">${c.code}</div>
+      <div>
+        <div class="moe-code-desc">${c.description}</div>
+        <div style="font-size:.6rem;color:var(--ink3);font-family:var(--mono)">${c.reason||''}</div>
+      </div>
+    </div>`).join('');
+
+  // Expert cards
+  const expertCards=(moe.findings||[]).map(f=>{
+    const rs=RISK_STYLES[f.risk_level]||RISK_STYLES.low;
+    const icon=EXPERT_ICONS[f.expert_id]||'🔬';
+    const ecol=EXPERT_COLORS[f.expert_id]||'var(--blue)';
+    const ebg=EXPERT_BG[f.expert_id]||'rgba(30,64,175,0.08)';
+    const srcLabel=f.source==='hybrid'?'AI + Rules':f.source==='llm'?'AI':'Rules';
+    const srcColor=f.source==='hybrid'||f.source==='llm'?'var(--purple)':'var(--ink3)';
+
+    const flagsHtml=(f.risk_flags||[]).map(flag=>{
+      const sev=flag.includes('CRITICAL')||f.risk_level==='critical'?'high':
+               flag.includes('HIGH')||f.risk_level==='high'?'high':
+               f.risk_level==='moderate'?'moderate':'low';
+      const cleanFlag=flag.replace(/^\[MOE:[A-Z]+\]\s*/,'');
+      return`<div class="moe-flag ${sev}">
+        <div style="flex-shrink:0;font-weight:600;font-size:.62rem">${sev==='high'?'⚠':'ℹ'}</div>
+        <div>${cleanFlag}</div>
+      </div>`;
+    }).join('')||'<div style="color:var(--green);font-size:.72rem;padding:4px 0">✓ No flags from this expert</div>';
+
+    const recsHtml=(f.recommendations||[]).map(r=>`
+      <div class="moe-rec">
+        <div class="moe-rec-dot"></div>
+        <div>${r}</div>
+      </div>`).join('');
+
+    const narrativeHtml=f.narrative?`
+      <div class="moe-section">
+        <div class="moe-section-title" style="color:var(--purple)">AI Expert Narrative — ${srcLabel}</div>
+        <div class="moe-narrative" style="font-style:normal">${renderNarrative(f.narrative)}</div>
+      </div>`:'';
+
+    const imgAssess=f.imaging_assessment?`
+      <div class="moe-section">
+        <div class="moe-section-title">Imaging Assessment</div>
+        <div style="font-size:.75rem;color:var(--ink2);line-height:1.55;background:var(--blue-l);border:1px solid var(--blue-b);border-radius:8px;padding:9px 11px">${f.imaging_assessment}</div>
+      </div>`:'';
+
+    const addCodes=(f.additional_codes||[]).length?`
+      <div class="moe-section">
+        <div class="moe-section-title">Suggested Codes</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${(f.additional_codes||[]).map(c=>`<div class="moe-code-chip"><div class="moe-code-val">${c.code}</div><div><div class="moe-code-desc">${c.description}</div><div style="font-size:.6rem;color:var(--ink3);font-family:var(--mono)">${c.reason||''}</div></div></div>`).join('')}</div>
+      </div>`:'';
+
+    return`<div class="moe-expert-card">
+      <div class="moe-expert-header" onclick="toggleMoeCard(this)">
+        <div class="moe-expert-left">
+          <div class="moe-expert-icon" style="background:${ebg};color:${ecol}">${icon}</div>
+          <div>
+            <div class="moe-expert-name">${f.expert_name}</div>
+            <div class="moe-expert-assess">${f.assessment}</div>
+          </div>
+        </div>
+        <div class="moe-expert-badges">
+          <span class="moe-risk-badge" style="background:${rs.bg};border-color:${rs.bc};color:${rs.col}">${f.risk_level}</span>
+          <span class="moe-src-badge" style="color:${srcColor}">${srcLabel}</span>
+          <span style="font-family:var(--mono);font-size:.6rem;color:var(--ink3)">${Math.round(f.expert_confidence*100)}%</span>
+          <span class="moe-expand-btn">▼</span>
+        </div>
+      </div>
+      <div class="moe-expert-body">
+        <div class="moe-section">
+          <div class="moe-section-title">Risk Flags (${(f.risk_flags||[]).length})</div>
+          ${flagsHtml}
+        </div>
+        ${imgAssess}
+        ${narrativeHtml}
+        <div class="moe-section">
+          <div class="moe-section-title">Recommendations (${(f.recommendations||[]).length})</div>
+          ${recsHtml||'<div style="color:var(--ink3);font-size:.72rem">No specific recommendations</div>'}
+        </div>
+        ${addCodes}
+        <div class="moe-section">
+          <div class="moe-section-title">Expert Confidence</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1;height:4px;background:var(--stone);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${Math.round(f.expert_confidence*100)}%;background:${ecol};border-radius:2px"></div>
+            </div>
+            <span style="font-family:var(--mono);font-size:.65rem;color:var(--ink3)">${Math.round(f.expert_confidence*100)}%</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);margin-top:4px">Router score: ${Math.round(f.router_score*100)}% · Source: ${f.source}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const consRs=RISK_STYLES[moe.consensus_risk]||RISK_STYLES.low;
+
+  return`
+    <div class="moe-summary-banner">
+      <div class="moe-summary-title">MoE Consensus — ${moe.activated_experts.length} expert(s) activated</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span class="moe-risk-badge" style="background:${consRs.bg};border-color:${consRs.bc};color:${consRs.col}">Consensus risk: ${moe.consensus_risk}</span>
+        <span style="font-family:var(--mono);font-size:.6rem;color:var(--ink3)">Avg confidence: ${Math.round((moe.moe_confidence||0)*100)}%</span>
+      </div>
+      <div class="moe-summary-text">${moe.expert_summary||'No summary available'}</div>
+    </div>
+
+    ${moe.imaging_assessments&&moe.imaging_assessments.length?`
+    <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:9px;padding:11px 13px;margin-bottom:12px">
+      <div style="font-family:var(--mono);font-size:.58rem;color:var(--blue);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Imaging Analysis</div>
+      ${moe.imaging_assessments.map(a=>`<div style="font-size:.74rem;color:var(--ink2);margin-bottom:4px">• ${a}</div>`).join('')}
+    </div>`:''}
+
+    <div style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Expert Panels</div>
+    ${expertCards||'<div style="color:var(--ink3);font-size:.72rem">No expert findings available</div>'}
+
+    ${sugCodes?`<div style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin:12px 0 8px">Suggested Additional Codes</div><div style="display:flex;flex-wrap:wrap">${sugCodes}</div>`:''}
+
+    <div style="margin-top:14px">
+      <div style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Router Scores</div>
+      ${routerRows}
+      <div style="font-family:var(--mono);font-size:.6rem;color:var(--ink4);margin-top:6px">${moe.routing_reason||''}</div>
+    </div>`;
+}
+
+function toggleMoeCard(header){
+  const body=header.nextElementSibling;
+  const btn=header.querySelector('.moe-expand-btn');
+  body.classList.toggle('open');
+  btn.style.transform=body.classList.contains('open')?'rotate(180deg)':'';
+}
+
+function renderResult(d){
+  const dec=d.decision,conf=Math.round(d.confidence_score*100);
+  const col=dec==='approved'?'var(--green)':dec==='rejected'?'var(--red)':'var(--amber)';
+  const icd=(d.icd10_codes||[]).map(c=>`<div class="chip"><div class="chip-code">${c.code}</div><div class="chip-desc">${c.description}</div><div class="chip-conf">${Math.round(c.confidence*100)}% conf</div></div>`).join('');
+  const cpt=(d.cpt_codes||[]).map(c=>`<div class="chip"><div class="chip-code cpt">${c.code}</div><div class="chip-desc">${c.description}</div><div class="chip-conf">${Math.round(c.confidence*100)}% conf</div></div>`).join('');
+  const rules=(d.rule_evaluations||[]).map(r=>{const ok=r.passed;const ic=ok?'✓':r.action==='reject'?'✗':'!';const rc=ok?'ri-ok':r.action==='reject'?'ri-fail':'ri-warn';return`<div class="rule-row"><div class="ri ${rc}">${ic}</div><div><div class="rule-id">${r.rule_id}</div><div class="rule-reason">${r.reason}</div></div></div>`;}).join('')||'<div style="color:var(--ink3);font-size:.72rem;padding:8px 0">No rules evaluated</div>';
+  const edges=(d.edge_cases||[]).map(e=>{const sev=(e.severity||'').toLowerCase();const isH=['critical','high'].includes(sev);const col=isH?'var(--red)':'var(--amber)';const bg=isH?'var(--red-l)':'var(--amber-l)';const bc=isH?'var(--red-b)':'var(--amber-b)';return`<div class="edge-card" style="background:${bg};border-color:${bc}"><div class="edge-type" style="color:${col}">${(e.type||'').replace(/_/g,' ').toUpperCase()} · ${e.severity||''}</div><div class="edge-desc">${e.description||''}</div>${e.image_signal?`<div style="font-size:.68rem;color:var(--amber);margin-top:4px;font-family:var(--mono)">Image: ${e.image_signal} | Text: ${e.text_signal} | Score: ${e.mismatch_score?.toFixed(2)||'?'}</div>`:''}<div class="edge-rec" style="border-color:${bc}">→ ${e.recommendation||''}</div></div>`;}).join('')||`<div style="background:var(--green-l);border:1px solid var(--green-b);border-radius:8px;padding:10px 14px;color:var(--green);font-size:.75rem">✓ No edge cases detected</div>`;
+  const chain=(d.explainability?.reasoning_chain||[]).map((s,i)=>`<div class="chain-step"><div class="chain-dot"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div class="chain-stage">${(s.stage||'').replace(/_/g,' ')}</div><div class="chain-conf">${Math.round((s.confidence||0)*100)}%</div></div><div class="chain-out">${s.outcome||''}</div></div></div>`).join('')||'<div style="color:var(--ink3);font-size:.72rem;padding:8px 0">No chain available</div>';
+
+  document.getElementById('rpContent').innerHTML=`
+    <div class="rp-body">
+      <div class="rp-header">
+        <div class="rp-decision" style="color:${col}">${dec.replace(/_/g,' ')}</div>
+        <div class="rp-meta">${conf}% confidence · ${(d.rule_evaluations||[]).length} rules · ${(d.icd10_codes||[]).length} ICD-10 · ${(d.cpt_codes||[]).length} CPT</div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);margin-top:3px">${d.audit_trace_id}</div>
+      </div>
+
+      <button class="btn-report" onclick="openReport(${currentIdx})">📋 Generate Full Clinical Report</button>
+
+      ${d.explainability?.summary?`<div class="sumbox">"${d.explainability.summary}"</div>`:''}
+
+      <div style="background:var(--paper);border:1px solid var(--stone);border-radius:10px;padding:14px;margin-bottom:16px">
+        <div style="font-family:var(--mono);font-size:.58rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Clinical Findings</div>
+        <table class="findings-table">
+          <tr><td>Diagnoses</td><td>${(d.icd10_codes||[]).map(c=>`${c.code} — ${c.description}`).join('<br>')||'—'}</td></tr>
+          <tr><td>Procedures</td><td>${(d.cpt_codes||[]).map(c=>`${c.code} — ${c.description}`).join('<br>')||'—'}</td></tr>
+          <tr><td>Rules</td><td>${(d.rule_evaluations||[]).length} evaluated · ${(d.rule_evaluations||[]).filter(r=>!r.passed&&r.action==='reject').length} blocking · ${(d.rule_evaluations||[]).filter(r=>!r.passed&&r.action==='flag_review').length} warnings</td></tr>
+          <tr><td>Edge Cases</td><td>${(d.edge_cases||[]).length?d.edge_cases.map(e=>e.type?.replace(/_/g,' ')).join(', '):'None detected'}</td></tr>
+        </table>
+      </div>
+
+      <div style="background:var(--white);border:1px solid var(--stone);border-radius:10px;padding:14px;margin-bottom:16px">
+        <div style="font-family:var(--mono);font-size:.58rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Required Actions</div>
+        <div class="action-list">${buildActions(d)}</div>
+      </div>
+
+  const moeActCount=(d.moe_analysis&&!d.moe_analysis.skipped)?(d.moe_analysis.activated_experts||[]).length:0;
+  const moeBadge=moeActCount>0?`<span style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--purple);color:#fff;font-size:.5rem;font-weight:700;margin-right:4px">${moeActCount}</span>`:'';
+
+      <div class="tabs">
+        <button class="tab active" onclick="swTab(this,'codes')">Codes</button>
+        <button class="tab" onclick="swTab(this,'rules')">Rules</button>
+        <button class="tab" onclick="swTab(this,'edges')">Edge Cases</button>
+        <button class="tab" onclick="swTab(this,'chain')">Reasoning</button>
+        <button class="tab" id="tab-moe-btn" onclick="swTab(this,'moe')" style="position:relative">${moeBadge}MoE Experts</button>
+      </div>
+      <div class="tc active" id="tab-codes">
+        <div style="font-family:var(--mono);font-size:.58rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">ICD-10-CM Diagnoses</div>
+        <div class="codes-grid">${icd||'<div style="color:var(--ink3);font-size:.72rem">None</div>'}</div>
+        <div style="font-family:var(--mono);font-size:.58rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin:10px 0 8px">CPT Procedures</div>
+        <div class="codes-grid">${cpt||'<div style="color:var(--ink3);font-size:.72rem">None</div>'}</div>
+      </div>
+      <div class="tc" id="tab-rules">${rules}</div>
+      <div class="tc" id="tab-edges">${edges}</div>
+      <div class="tc" id="tab-chain">${chain}</div>
+      <div class="tc" id="tab-moe">${buildMoE(d)}</div>
+    </div>`;
+}
+
+function swTab(el,name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');document.getElementById('tab-'+name)?.classList.add('active');
+}
+
+function openReport(i){
+  if(i===null||!claims[i]){toast('No claim selected','err');return}
+  sessionStorage.setItem('claimiq_report',JSON.stringify(claims[i]));
+  window.open('report.html','_blank');
+}
+
+// Health
+fetch(`${API}/health`).then(r=>r.json()).then(d=>{
+  document.getElementById('dot').className='status-dot';
+  document.getElementById('apiTxt').textContent=`Live · ${d.rules_loaded} rules`;
+  toast(`Connected — ${d.rules_loaded} rules loaded`,'ok');
+}).catch(()=>{
+  document.getElementById('dot').className='status-dot off';
+  document.getElementById('apiTxt').textContent='API Offline';
+  toast('API offline — run python start.py','err');
+});
+
+loadClaims();
+</script>
 </body>
 </html>

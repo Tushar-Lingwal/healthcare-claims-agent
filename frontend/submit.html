@@ -1,243 +1,491 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>ClaimIQ — Submit Claim</title>
-
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Fraunces:wght@300;400;500&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0b0f1a;
-  --glass:rgba(255,255,255,0.05);
-  --border:rgba(255,255,255,0.08);
-  --text:#e5e7eb;
-  --muted:#94a3b8;
-  --blue:#3b82f6;
-  --purple:#8b5cf6;
-}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--cream:#f6f4ee;--white:#fff;--paper:#faf9f6;--stone:#eae8e0;--ash:#d8d6cc;--ink:#18181a;--ink2:#4a4845;--ink3:#8a8780;--ink4:#b8b5ac;--blue:#1e40af;--blue-l:#dbeafe;--blue-b:#93c5fd;--purple:#5b21b6;--green:#065f46;--green-l:#d1fae5;--green-b:#6ee7b7;--red:#991b1b;--red-l:#fee2e2;--red-b:#fca5a5;--amber:#78350f;--amber-l:#fef3c7;--amber-b:#fcd34d;--serif:'Fraunces',Georgia,serif;--mono:'DM Mono','Courier New',monospace;--sans:'DM Sans',system-ui,sans-serif;--nav-h:60px;--shadow:0 4px 16px rgba(0,0,0,.08);--shadow-sm:0 1px 3px rgba(0,0,0,.06)}
 
-*{margin:0;padding:0;box-sizing:border-box}
-
-body{
-  font-family:'DM Sans',sans-serif;
-  color:var(--text);
+/* ── BACKGROUND SYSTEM ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
   background:
-    linear-gradient(rgba(11,15,26,0.9), rgba(11,15,26,0.95)),
-    url("https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=1920&auto=format&fit=crop");
-  background-size:cover;
-  background-position:center;
+    radial-gradient(ellipse 900px 600px at 15% 20%, rgba(30,64,175,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 500px at 85% 75%, rgba(91,33,182,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 400px at 50% 50%, rgba(6,95,70,0.025) 0%, transparent 70%);
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    radial-gradient(circle, rgba(24,24,26,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+  pointer-events: none;
+}
+.bg-geo {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bg-geo svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
-/* NAV */
-nav{
-  position:fixed;
-  width:100%;
-  top:0;
-  display:flex;
-  justify-content:space-between;
-  padding:18px 40px;
-  backdrop-filter:blur(20px);
-  background:rgba(0,0,0,0.4);
-  border-bottom:1px solid var(--border);
-  z-index:100;
-}
-
-.nav-logo{font-weight:600}
-.nav-links a{
-  color:var(--muted);
-  margin-left:20px;
-  text-decoration:none;
-}
+html{font-size:14px}body{background:var(--cream);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--ash);border-radius:2px}
+nav{position:sticky;top:0;z-index:100;height:var(--nav-h);background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--stone);display:flex;align-items:center;justify-content:space-between;padding:0 32px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}.nav-logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#1e40af,#5b21b6);display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--mono);font-size:11px;font-weight:500}.nav-name{font-family:var(--serif);font-size:1.1rem;color:var(--ink)}.nav-sub{font-family:var(--mono);font-size:.55rem;color:var(--ink3);margin-top:-1px}
+.nav-links{display:flex;align-items:center;gap:2px}.nav-link{padding:7px 14px;border-radius:7px;text-decoration:none;font-size:.78rem;font-weight:500;color:var(--ink2);transition:all .15s}.nav-link:hover{background:var(--stone)}.nav-link.active{background:var(--blue-l);color:var(--blue)}
+.api-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:var(--stone);font-family:var(--mono);font-size:.6rem;color:var(--ink3)}.status-dot{width:6px;height:6px;border-radius:50%;background:#16a34a;animation:pulse 2.5s infinite;flex-shrink:0}.status-dot.off{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px #dcfce7}50%{box-shadow:0 0 0 4px #dcfce7}}
 
 /* LAYOUT */
-.container{
-  padding-top:120px;
-  display:grid;
-  grid-template-columns:1fr 350px;
-  gap:30px;
-  max-width:1200px;
-  margin:auto;
-  padding-left:20px;
-  padding-right:20px;
-}
+.layout{max-width:1100px;margin:0 auto;padding:40px 32px;display:grid;grid-template-columns:1fr 380px;gap:32px;align-items:start}
+.page-title{font-family:var(--serif);font-size:1.8rem;font-weight:400;letter-spacing:-.02em;margin-bottom:4px}
+.page-sub{font-size:.8rem;color:var(--ink3);font-family:var(--mono);margin-bottom:28px}
 
-/* CARD */
-.card{
-  background:var(--glass);
-  border:1px solid var(--border);
-  backdrop-filter:blur(16px);
-  border-radius:16px;
-  padding:25px;
-  animation:fadeUp .6s ease;
-}
+/* FORM CARD */
+.form-card{background:var(--white);border:1px solid var(--stone);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.form-section{padding:24px 24px 0;border-bottom:1px solid var(--stone)}
+.form-section:last-of-type{border-bottom:none;padding-bottom:24px}
+.form-section-title{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:16px;display:flex;align-items:center;gap:8px}.form-section-title::after{content:'';flex:1;height:1px;background:var(--stone)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
+.form-grid.cols-1{grid-template-columns:1fr}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.span2{grid-column:1/-1}
+label{font-size:.62rem;color:var(--ink3);font-family:var(--mono);letter-spacing:.07em;text-transform:uppercase;font-weight:500}
+input,select,textarea{background:var(--paper);border:1px solid var(--stone);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:.8rem;padding:9px 11px;outline:none;transition:all .2s;width:100%;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l);background:var(--white)}
+textarea{resize:vertical;min-height:100px;line-height:1.55;font-family:var(--sans);font-size:.82rem}
+select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8780' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:32px}
+select option{background:var(--white);font-family:var(--sans)}
 
-@keyframes fadeUp{
-  from{opacity:0;transform:translateY(20px)}
-  to{opacity:1;transform:translateY(0)}
-}
+/* TAG INPUT */
+.tag-wrap{background:var(--paper);border:1px solid var(--stone);border-radius:8px;padding:7px 10px;min-height:42px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;cursor:text;transition:all .2s}
+.tag-wrap:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l);background:var(--white)}
+.tag{display:flex;align-items:center;gap:4px;background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b);border-radius:5px;padding:3px 9px;font-family:var(--mono);font-size:.68rem}
+.tag-x{cursor:pointer;opacity:.6;line-height:1;font-size:.85rem}.tag-x:hover{opacity:1}
+.tag-input{background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.75rem;color:var(--ink);min-width:100px;flex:1;padding:2px 0}
 
-/* FORM */
-h2{
-  font-family:'Fraunces',serif;
-  margin-bottom:20px;
-}
+/* PLAN INDICATOR */
+.plan-row{display:flex;gap:8px;margin-top:8px}
+.plan-opt{flex:1;padding:10px 8px;border-radius:8px;border:1.5px solid var(--stone);cursor:pointer;text-align:center;transition:all .2s}
+.plan-opt.selected-plan{border-color:var(--blue);background:var(--blue-l)}
+.plan-dot{width:8px;height:8px;border-radius:50%;margin:0 auto 5px}
+.plan-name{font-family:var(--mono);font-size:.62rem;font-weight:500}
+.plan-desc{font-size:.62rem;color:var(--ink3);margin-top:1px}
 
-label{
-  font-size:.75rem;
-  color:var(--muted);
-  display:block;
-  margin-bottom:6px;
-}
-
-input, textarea, select{
-  width:100%;
-  padding:10px 12px;
-  border-radius:8px;
-  border:1px solid var(--border);
-  background:rgba(255,255,255,0.03);
-  color:var(--text);
-  margin-bottom:16px;
-  outline:none;
-}
-
-input:focus, textarea:focus{
-  border-color:var(--blue);
-  box-shadow:0 0 0 2px rgba(59,130,246,0.2);
-}
-
-/* BUTTON */
-.btn{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  background:linear-gradient(135deg,var(--blue),var(--purple));
-  color:white;
-  font-weight:600;
-  cursor:pointer;
-  transition:.3s;
-}
-
-.btn:hover{
-  transform:translateY(-2px);
-  box-shadow:0 10px 30px rgba(59,130,246,0.3);
-}
+/* SUBMIT BUTTON */
+.submit-zone{padding:20px 24px;background:var(--paper);border-top:1px solid var(--stone)}
+.btn-submit{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,#1e40af,#5b21b6);color:#fff;font-family:var(--sans);font-size:.88rem;font-weight:700;letter-spacing:.01em;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-submit:hover{opacity:.92;box-shadow:0 6px 20px rgba(30,64,175,.35);transform:translateY(-1px)}
+.btn-submit:active{transform:scale(.99)}
+.btn-submit:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
 
 /* SIDEBAR */
-.tip{
-  font-size:.85rem;
-  color:var(--muted);
-  margin-bottom:10px;
-}
+.sidebar{display:flex;flex-direction:column;gap:16px}
+.side-card{background:var(--white);border:1px solid var(--stone);border-radius:14px;padding:18px;box-shadow:var(--shadow-sm)}
+.side-title{font-family:var(--mono);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
+.tip-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--paper);font-size:.74rem;color:var(--ink2);line-height:1.4}
+.tip-row:last-child{border:none}
+.tip-icon{font-size:.9rem;flex-shrink:0}
+.sample-btn{width:100%;padding:9px;border-radius:8px;border:1px solid var(--stone);background:var(--paper);color:var(--ink2);font-family:var(--sans);font-size:.75rem;cursor:pointer;text-align:left;transition:all .2s;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sample-btn:hover{border-color:var(--ash);background:var(--white)}
+.sample-btn:last-child{margin:0}
+.sample-dec{font-family:var(--mono);font-size:.58rem;padding:2px 6px;border-radius:3px;margin-left:auto}
 
 /* LOADING OVERLAY */
-.overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.7);
-  display:none;
-  justify-content:center;
-  align-items:center;
-  z-index:200;
-}
+.lov{display:none;position:fixed;inset:0;z-index:200;background:rgba(246,244,238,.9);backdrop-filter:blur(8px);align-items:center;justify-content:center;flex-direction:column;gap:0}
+.lov.on{display:flex}
+.lov-card{background:var(--white);border:1px solid var(--stone);border-radius:20px;padding:32px;width:400px;box-shadow:0 20px 60px rgba(0,0,0,.12)}
+.lov-title{font-family:var(--serif);font-size:1.4rem;font-weight:400;margin-bottom:4px}
+.lov-sub{font-family:var(--mono);font-size:.62rem;color:var(--ink3);margin-bottom:24px}
+.pipe-step{display:flex;align-items:center;gap:12px;padding:10px 0;position:relative}
+.pipe-step:not(:last-child)::after{content:'';position:absolute;left:14px;top:38px;height:calc(100% - 10px);width:1px;background:var(--stone)}
+.step-circle{width:30px;height:30px;border-radius:50%;border:2px solid var(--stone);background:var(--paper);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.62rem;color:var(--ink3);flex-shrink:0;transition:all .4s}
+.step-circle.active{border-color:var(--blue);background:var(--blue-l);color:var(--blue);box-shadow:0 0 0 4px rgba(30,64,175,.1)}
+.step-circle.done{border-color:var(--green);background:var(--green-l);color:var(--green)}
+.step-name{font-size:.78rem;font-weight:500;color:var(--ink);transition:color .3s}
+.step-name.active{color:var(--blue)}
+.step-name.done{color:var(--green)}
+.step-desc{font-family:var(--mono);font-size:.6rem;color:var(--ink3);margin-top:1px}
+.step-time{font-family:var(--mono);font-size:.58rem;color:var(--ink3);margin-left:auto}
+.step-time.active{color:var(--blue)}.step-time.done{color:var(--green)}
+.prog-bar{height:3px;background:var(--stone);border-radius:2px;margin-top:20px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,#1e40af,#5b21b6);border-radius:2px;transition:width .5s ease;width:0}
 
-.overlay.active{
-  display:flex;
-}
-
-.loader{
-  width:300px;
-  padding:30px;
-  background:var(--glass);
-  border:1px solid var(--border);
-  border-radius:16px;
-  text-align:center;
-}
-
-.bar{
-  height:6px;
-  background:var(--border);
-  border-radius:4px;
-  overflow:hidden;
-  margin-top:20px;
-}
-
-.fill{
-  height:100%;
-  width:0;
-  background:linear-gradient(90deg,var(--blue),var(--purple));
-  animation:load 2s infinite;
-}
-
-@keyframes load{
-  0%{width:0}
-  100%{width:100%}
-}
-
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;z-index:999;padding:9px 15px;border-radius:8px;font-family:var(--mono);font-size:.68rem;border:1px solid;transform:translateY(50px);opacity:0;transition:all .3s;box-shadow:var(--shadow)}
+.toast.show{transform:translateY(0);opacity:1}.toast.ok{background:var(--green-l);border-color:var(--green-b);color:var(--green)}.toast.err{background:var(--red-l);border-color:var(--red-b);color:var(--red)}.toast.info{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue)}
 </style>
 </head>
-
 <body>
+<div class="toast" id="toast"></div>
+
+<!-- LOADING OVERLAY -->
+<div class="lov" id="lov">
+  <div class="lov-card">
+    <div class="lov-title">Processing Claim</div>
+    <div class="lov-sub">Running through 9-stage adjudication pipeline</div>
+    <div id="pipeSteps">
+      <div class="pipe-step" id="ps0"><div class="step-circle" id="sc0">1</div><div style="flex:1"><div class="step-name" id="sn0">PHI Tokenization</div><div class="step-desc">Encrypting patient identifiers into vault tokens</div></div><div class="step-time" id="st0"></div></div>
+      <div class="pipe-step" id="ps1"><div class="step-circle" id="sc1">2</div><div style="flex:1"><div class="step-name" id="sn1">Clinical NER</div><div class="step-desc">Extracting diagnoses, procedures, medications</div></div><div class="step-time" id="st1"></div></div>
+      <div class="pipe-step" id="ps2"><div class="step-circle" id="sc2">3</div><div style="flex:1"><div class="step-name" id="sn2">Medical Coding</div><div class="step-desc">Mapping to ICD-10-CM and CPT codes</div></div><div class="step-time" id="st2"></div></div>
+      <div class="pipe-step" id="ps3"><div class="step-circle" id="sc3">4</div><div style="flex:1"><div class="step-name" id="sn3">Guideline RAG</div><div class="step-desc">Retrieving NCCN, CMS, AHA passages</div></div><div class="step-time" id="st3"></div></div>
+      <div class="pipe-step" id="ps4"><div class="step-circle" id="sc4">5</div><div style="flex:1"><div class="step-name" id="sn4">Rule Engine</div><div class="step-desc">Evaluating 14 policy rules</div></div><div class="step-time" id="st4"></div></div>
+      <div class="pipe-step" id="ps5"><div class="step-circle" id="sc5">6</div><div style="flex:1"><div class="step-name" id="sn5">Decision + Report</div><div class="step-desc">Final adjudication with explainability</div></div><div class="step-time" id="st5"></div></div>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+  </div>
+</div>
 
 <nav>
-  <div class="nav-logo">ClaimIQ</div>
+  <a class="nav-brand" href="index.html">
+    <div class="nav-logo">Rx</div>
+    <div><div class="nav-name">ClaimIQ</div><div class="nav-sub">Healthcare Claims Adjudication</div></div>
+  </a>
   <div class="nav-links">
-    <a href="index.html">Home</a>
-    <a href="dashboard.html">Dashboard</a>
-    <a href="imaging.html">Imaging</a>
+    <a class="nav-link" href="index.html">Overview</a>
+    <a class="nav-link active" href="submit.html">Submit Claim</a>
+    <a class="nav-link" href="dashboard.html">Dashboard</a>
+    <a class="nav-link" href="imaging.html">Imaging</a>
   </div>
+  <div class="api-pill"><div class="status-dot" id="dot"></div><span id="apiTxt">Connecting...</span></div>
 </nav>
 
-<div class="container">
+<div class="layout">
+  <div>
+    <div class="page-title">Submit New Claim</div>
+    <div class="page-sub">Complete all fields and click submit — the AI will process in ~4 seconds</div>
 
-  <!-- FORM -->
-  <div class="card">
-    <h2>Submit Clinical Claim</h2>
+    <div class="form-card">
+      <!-- Patient Info -->
+      <div class="form-section">
+        <div class="form-section-title">Patient Information</div>
+        <div class="form-grid">
+          <div class="fg"><label>Patient Name</label><input id="pname" placeholder="e.g. Jane Smith" value="Jane Smith"></div>
+          <div class="fg"><label>Patient ID / MRN</label><input id="pid" placeholder="e.g. MRN-10001" value="MRN-10001"></div>
+          <div class="fg"><label>Date of Birth</label><input id="dob" placeholder="YYYY-MM-DD" value="1964-03-12"></div>
+          <div class="fg"><label>Age</label><input type="number" id="age" placeholder="60" value="60" min="0" max="120"></div>
+          <div class="fg"><label>Sex</label>
+            <select id="sex"><option value="F">Female</option><option value="M">Male</option><option value="Other">Other</option></select>
+          </div>
+          <div class="fg"><label>Policy Number</label><input id="pol" placeholder="POL-99234" value="POL-99234"></div>
+        </div>
+      </div>
 
-    <label>Patient Name</label>
-    <input type="text">
+      <!-- Insurance -->
+      <div class="form-section">
+        <div class="form-section-title">Insurance Plan</div>
+        <div style="margin-bottom:24px">
+          <div class="plan-row">
+            <div class="plan-opt" id="plan-basic" onclick="selectPlan('basic')">
+              <div class="plan-dot" style="background:#d97706"></div>
+              <div class="plan-name">Basic</div>
+              <div class="plan-desc">Limited coverage</div>
+            </div>
+            <div class="plan-opt selected-plan" id="plan-standard" onclick="selectPlan('standard')">
+              <div class="plan-dot" style="background:#1e40af"></div>
+              <div class="plan-name">Standard</div>
+              <div class="plan-desc">Core procedures</div>
+            </div>
+            <div class="plan-opt" id="plan-premium" onclick="selectPlan('premium')">
+              <div class="plan-dot" style="background:#065f46"></div>
+              <div class="plan-name">Premium</div>
+              <div class="plan-desc">Full coverage</div>
+            </div>
+          </div>
+          <input type="hidden" id="plan" value="standard">
+        </div>
+      </div>
 
-    <label>Age</label>
-    <input type="number">
+      <!-- Clinical Data -->
+      <div class="form-section">
+        <div class="form-section-title">Clinical Information</div>
+        <div class="form-grid cols-1">
+          <div class="fg span2">
+            <label>Clinical Notes <span style="color:var(--ink4);font-size:.58rem">(free text — AI extracts diagnoses automatically)</span></label>
+            <textarea id="notes" rows="5" placeholder="Enter clinical notes describing the patient's condition, recommended procedures, and clinical history...">Patient presents with confirmed glioma stage 2 in the left temporal lobe. MRI brain with contrast recommended for treatment planning and surveillance. Patient reports progressive headaches over 3 months.</textarea>
+          </div>
+          <div class="fg span2">
+            <label>Diagnoses <span style="color:var(--ink4);font-size:.58rem">(press Enter to add — supplements NER extraction)</span></label>
+            <div class="tag-wrap" id="diagWrap"><input class="tag-input" id="diagIn" placeholder="Type a diagnosis and press Enter..." onkeydown="addTag(event,'diag')"></div>
+          </div>
+          <div class="fg span2">
+            <label>Procedures <span style="color:var(--ink4);font-size:.58rem">(press Enter to add)</span></label>
+            <div class="tag-wrap" id="procWrap"><input class="tag-input" id="procIn" placeholder="Type a procedure and press Enter..." onkeydown="addTag(event,'proc')"></div>
+          </div>
+        </div>
+      </div>
 
-    <label>Diagnosis Notes</label>
-    <textarea placeholder="Enter clinical notes..."></textarea>
+      <!-- Imaging -->
+      <div class="form-section">
+        <div class="form-section-title">Imaging (optional)</div>
+        <div class="form-grid" style="margin-bottom:24px">
+          <div class="fg">
+            <label>Imaging Mode</label>
+            <select id="imgMode" onchange="toggleImaging()">
+              <option value="skipped">Skipped — no imaging</option>
+              <option value="precomputed">Pre-computed — paste result</option>
+            </select>
+          </div>
+          <div class="fg" id="imgConfWrap" style="display:none">
+            <label>Confidence Score (0-1)</label>
+            <input id="imgConf" type="number" step="0.01" min="0" max="1" placeholder="0.94" value="0.94">
+          </div>
+          <div class="fg span2" id="imgClassWrap" style="display:none">
+            <label>Classification Result</label>
+            <input id="imgClass" placeholder="e.g. glioma_stage_2">
+          </div>
+        </div>
+      </div>
 
-    <label>Procedure</label>
-    <input type="text">
-
-    <button class="btn" onclick="submitClaim()">Run AI Adjudication</button>
+      <!-- Submit -->
+      <div class="submit-zone">
+        <button class="btn-submit" id="submitBtn" onclick="submitClaim()">
+          Submit Claim for Adjudication →
+        </button>
+        <div style="text-align:center;margin-top:10px;font-family:var(--mono);font-size:.6rem;color:var(--ink3)">
+          PHI is tokenized before processing · Results stored locally
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- SIDEBAR -->
-  <div class="card">
-    <h3>Tips</h3>
-    <p class="tip">✔ Include detailed symptoms</p>
-    <p class="tip">✔ Mention procedures clearly</p>
-    <p class="tip">✔ Avoid vague terms</p>
-  </div>
+  <div class="sidebar">
+    <!-- Tips -->
+    <div class="side-card">
+      <div class="side-title">Tips for accurate results</div>
+      <div class="tip-row"><span class="tip-icon">📝</span><span>Write clinical notes as you would in an EMR — the NER extracts diagnoses automatically without tags.</span></div>
+      <div class="tip-row"><span class="tip-icon">🏷️</span><span>Use diagnosis/procedure tags to supplement free text — especially useful for abbreviated terms the NER might miss.</span></div>
+      <div class="tip-row"><span class="tip-icon">💳</span><span>BASIC plan rejects elective joint replacement and advanced MRI. Use STANDARD or PREMIUM for those procedures.</span></div>
+      <div class="tip-row"><span class="tip-icon">🔐</span><span>Patient names and dates are encrypted before any AI processing — no PHI leaves the vault.</span></div>
+    </div>
 
-</div>
+    <!-- Sample claims -->
+    <div class="side-card">
+      <div class="side-title">Load sample claim</div>
+      <button class="sample-btn" onclick="loadSample({notes:'Patient with confirmed glioma stage 2. MRI brain recommended for surveillance.',dx:'glioma stage 2',proc:'mri brain',plan:'premium'})">
+        <span style="font-size:.9rem">✅</span>
+        <div style="flex:1">
+          <div style="font-size:.75rem;font-weight:500;color:var(--ink)">Brain Tumor + MRI</div>
+          <div style="font-size:.65rem;color:var(--ink3)">Plan: premium</div>
+        </div>
+        <span class="sample-dec" style="background:#d1fae5;color:#065f46">APPROVED</span>
+      </button>
+      <button class="sample-btn" onclick="loadSample({notes:'Severe knee osteoarthritis. Failed conservative treatment. Total knee replacement recommended.',dx:'knee osteoarthritis',proc:'knee replacement',plan:'basic'})">
+        <span style="font-size:.9rem">❌</span>
+        <div style="flex:1">
+          <div style="font-size:.75rem;font-weight:500;color:var(--ink)">Knee Replace (BASIC)</div>
+          <div style="font-size:.65rem;color:var(--ink3)">Plan: basic</div>
+        </div>
+        <span class="sample-dec" style="background:#fee2e2;color:#991b1b">REJECTED</span>
+      </button>
+      <button class="sample-btn" onclick="loadSample({notes:'Invasive ductal carcinoma right breast Stage II. Mastectomy and chemotherapy planned.',dx:'breast cancer',proc:'mastectomy',plan:'premium'})">
+        <span style="font-size:.9rem">✅</span>
+        <div style="flex:1">
+          <div style="font-size:.75rem;font-weight:500;color:var(--ink)">Breast Cancer Surgery</div>
+          <div style="font-size:.65rem;color:var(--ink3)">Plan: premium</div>
+        </div>
+        <span class="sample-dec" style="background:#d1fae5;color:#065f46">APPROVED</span>
+      </button>
+      <button class="sample-btn" onclick="loadSample({notes:'Progressive cognitive decline 18 months. Formal Alzheimer diagnosis confirmed. MRI to rule out structural causes.',dx:'alzheimer disease',proc:'mri brain',plan:'standard'})">
+        <span style="font-size:.9rem">⚠️</span>
+        <div style="flex:1">
+          <div style="font-size:.75rem;font-weight:500;color:var(--ink)">Alzheimer + MRI</div>
+          <div style="font-size:.65rem;color:var(--ink3)">Plan: standard</div>
+        </div>
+        <span class="sample-dec" style="background:#fef3c7;color:#78350f">REVIEW</span>
+      </button>
+    </div>
 
-<!-- LOADER -->
-<div class="overlay" id="overlay">
-  <div class="loader">
-    Processing Claim...
-    <div class="bar"><div class="fill"></div></div>
+    <!-- Quick guide -->
+    <div class="side-card">
+      <div class="side-title">Decision factors</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:.73rem;color:var(--ink2)">
+        <div style="padding:8px 10px;background:var(--green-l);border-radius:7px;border:1px solid var(--green-b)">
+          <strong style="color:var(--green)">APPROVED</strong> — All rules pass, no edge cases detected
+        </div>
+        <div style="padding:8px 10px;background:var(--red-l);border-radius:7px;border:1px solid var(--red-b)">
+          <strong style="color:var(--red)">REJECTED</strong> — Blocking rule failure (coverage, compatibility, age)
+        </div>
+        <div style="padding:8px 10px;background:var(--amber-l);border-radius:7px;border:1px solid var(--amber-b)">
+          <strong style="color:var(--amber)">REVIEW</strong> — Prior auth required or edge case detected
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-function submitClaim(){
-  document.getElementById("overlay").classList.add("active");
+const API=sessionStorage.getItem('claimiq_api')||'http://localhost:8000';
+let diagTags=[],procTags=[],loadTimers=[];
 
-  setTimeout(()=>{
-    window.location="dashboard.html";
-  },2000);
+function toast(m,t='info'){const e=document.getElementById('toast');e.textContent=m;e.className=`toast ${t} show`;setTimeout(()=>e.classList.remove('show'),3200)}
+
+function selectPlan(p){
+  ['basic','standard','premium'].forEach(x=>{document.getElementById('plan-'+x).classList.toggle('selected-plan',x===p)});
+  document.getElementById('plan').value=p;
 }
-</script>
 
+function toggleImaging(){
+  const m=document.getElementById('imgMode').value;
+  document.getElementById('imgConfWrap').style.display=m==='precomputed'?'':'none';
+  document.getElementById('imgClassWrap').style.display=m==='precomputed'?'':'none';
+}
+
+function addTag(e,type){
+  if(e.key!=='Enter')return;e.preventDefault();
+  const inp=document.getElementById(type==='diag'?'diagIn':'procIn');
+  const v=inp.value.trim();if(!v)return;
+  if(type==='diag')diagTags.push(v);else procTags.push(v);
+  renderTags(type);inp.value='';
+}
+function renderTags(type){
+  const wrap=document.getElementById(type==='diag'?'diagWrap':'procWrap');
+  const inp=document.getElementById(type==='diag'?'diagIn':'procIn');
+  const tags=type==='diag'?diagTags:procTags;
+  wrap.innerHTML='';
+  tags.forEach((t,i)=>{
+    const el=document.createElement('span');el.className='tag';
+    el.innerHTML=`${t}<span class="tag-x" onclick="removeTag('${type}',${i})">×</span>`;
+    wrap.appendChild(el);
+  });
+  wrap.appendChild(inp);
+}
+function removeTag(type,i){if(type==='diag')diagTags.splice(i,1);else procTags.splice(i,1);renderTags(type)}
+
+function loadSample(s){
+  document.getElementById('notes').value=s.notes;
+  diagTags=[s.dx];procTags=[s.proc];
+  renderTags('diag');renderTags('proc');
+  selectPlan(s.plan);
+  toast('Sample claim loaded — click Submit to process','info');
+}
+
+function showLoad(){
+  document.getElementById('lov').classList.add('on');
+  document.getElementById('progFill').style.width='0%';
+  const dur=[600,1200,700,500,600,500];
+  let elapsed=0,total=dur.reduce((a,b)=>a+b,0);
+  loadTimers=[];
+  dur.forEach((d,i)=>{
+    loadTimers.push(setTimeout(()=>{
+      if(i>0){
+        document.getElementById('sc'+(i-1)).className='step-circle done';
+        document.getElementById('sc'+(i-1)).textContent='✓';
+        document.getElementById('sn'+(i-1)).className='step-name done';
+        document.getElementById('st'+(i-1)).className='step-time done';
+        document.getElementById('st'+(i-1)).textContent='done';
+      }
+      document.getElementById('sc'+i).className='step-circle active';
+      document.getElementById('sn'+i).className='step-name active';
+      document.getElementById('st'+i).className='step-time active';
+      document.getElementById('st'+i).textContent='running...';
+      document.getElementById('progFill').style.width=(elapsed/total*100)+'%';
+    },elapsed));
+    elapsed+=d;
+  });
+  loadTimers.push(setTimeout(()=>{
+    document.getElementById('sc5').className='step-circle done';
+    document.getElementById('sc5').textContent='✓';
+    document.getElementById('sn5').className='step-name done';
+    document.getElementById('st5').className='step-time done';
+    document.getElementById('st5').textContent='done';
+    document.getElementById('progFill').style.width='100%';
+  },elapsed));
+}
+function hideLoad(){
+  loadTimers.forEach(t=>clearTimeout(t));
+  setTimeout(()=>{
+    document.getElementById('lov').classList.remove('on');
+    for(let i=0;i<6;i++){
+      document.getElementById('sc'+i).className='step-circle';
+      document.getElementById('sc'+i).textContent=i+1;
+      document.getElementById('sn'+i).className='step-name';
+      document.getElementById('st'+i).className='step-time';
+      document.getElementById('st'+i).textContent='';
+    }
+  },400);
+}
+
+async function submitClaim(){
+  const btn=document.getElementById('submitBtn');btn.disabled=true;
+  const payload={
+    patient_info:{
+      patient_id:document.getElementById('pid').value||'MRN-001',
+      name:document.getElementById('pname').value||'Patient',
+      date_of_birth:document.getElementById('dob').value||'1980-01-01',
+      age:parseInt(document.getElementById('age').value)||40,
+      sex:document.getElementById('sex').value,
+      insurance_plan:document.getElementById('plan').value,
+      policy_number:document.getElementById('pol').value||'POL-001',
+    },
+    clinical_notes:document.getElementById('notes').value,
+    structured_data:{diagnoses:[...diagTags],procedures:[...procTags],symptoms:[],medications:[]},
+    imaging_mode:document.getElementById('imgMode').value,
+    precomputed_class:document.getElementById('imgClass').value||null,
+    precomputed_confidence:parseFloat(document.getElementById('imgConf').value)||null,
+  };
+
+  showLoad();
+  const minWait=new Promise(r=>setTimeout(r,4300));
+
+  try{
+    const [res]=await Promise.all([
+      fetch(`${API}/adjudicate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
+      minWait
+    ]);
+    const data=await res.json();
+    hideLoad();
+
+    if(!res.ok){toast(`Error: ${data.detail||'Request failed'}`,'err');return}
+
+    // Store result
+    const enriched={...data,_notes:payload.clinical_notes,_name:payload.patient_info.name,_plan:payload.patient_info.insurance_plan};
+    const claims=JSON.parse(localStorage.getItem('claimiq_claims')||'[]');
+    claims.unshift(enriched);
+    localStorage.setItem('claimiq_claims',JSON.stringify(claims.slice(0,100)));
+    sessionStorage.setItem('latest_result',JSON.stringify(enriched));
+
+    const dec=data.decision;
+    const label=dec==='approved'?'APPROVED ✓':dec==='rejected'?'REJECTED ✗':'NEEDS REVIEW ⚠';
+    toast(`${data.claim_id} — ${label}`,dec==='approved'?'ok':'err');
+
+    // Redirect to dashboard to see result
+    setTimeout(()=>window.location.href='dashboard.html',800);
+
+  }catch(e){
+    hideLoad();
+    toast('Connection error — is the API running on port 8000?','err');
+  }finally{btn.disabled=false}
+}
+
+// Health check
+fetch(`${API}/health`).then(r=>r.json()).then(d=>{
+  document.getElementById('dot').className='status-dot';
+  document.getElementById('apiTxt').textContent=`Live · ${d.rules_loaded} rules`;
+}).catch(()=>{
+  document.getElementById('dot').className='status-dot off';
+  document.getElementById('apiTxt').textContent='API Offline';
+  toast('Cannot connect to API — start with python start.py','err');
+});
+</script>
 </body>
 </html>
