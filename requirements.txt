@@ -1,27 +1,26 @@
 # Core API
 fastapi>=0.110.0
 uvicorn[standard]>=0.27.0
-aiofiles>=23.0.0
 python-dotenv>=1.0.0
 pydantic>=2.0.0
 
-# Security / PHI
+# Security
 cryptography>=42.0.0
 
-# LLM Providers (install the one you use)
-anthropic>=0.20.0
-google-generativeai>=0.5.0
+# LLM Providers
 groq>=0.5.0
+google-generativeai>=0.5.0
+anthropic>=0.20.0
 openai>=1.0.0
 
-# Database
-psycopg2-binary>=2.9.0       # PostgreSQL
-pgvector>=0.2.0               # Vector search (RAG)
-
-# Auth
+# Auth (lightweight)
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
-python-multipart>=0.0.9       # Form data for login
+python-multipart>=0.0.9
 
 # HTTP
 httpx>=0.26.0
+
+# NOTE: psycopg2-binary and pgvector are NOT included
+# They require pg_config / libpq-dev which bloats the image
+# Add them only when switching to PostgreSQL backend
