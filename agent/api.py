@@ -41,6 +41,7 @@ from agent.engine.pipeline import ClaimsAdjudicationPipeline
 from agent.logging.audit_logger import get_audit_logger, reset_audit_logger
 from agent.logging.audit_exporter import AuditExporter
 from agent.reporting.report_generator import ReportGenerator
+from agent.imaging.swin_classifier import classify_mri_image, get_space_status
 from agent.reporting.llm_report_writer import (
     generate_llm_narrative, _rule_based_narrative, build_full_report_html
 )
@@ -108,6 +109,22 @@ app.add_middleware(
     allow_methods     = ["*"],
     allow_headers     = ["*"],
 )
+
+
+# ─────────────────────────────────────────────
+# ROOT ENDPOINT
+# ─────────────────────────────────────────────
+
+@app.get("/", tags=["Info"], summary="API root")
+async def root():
+    return {
+        "name":        "ClaimIQ — Healthcare Claims Adjudication Agent",
+        "version":     "1.0.0",
+        "status":      "running",
+        "docs":        "/docs",
+        "health":      "/health",
+        "adjudicate":  "POST /adjudicate",
+    }
 
 
 # ─────────────────────────────────────────────
@@ -406,6 +423,54 @@ async def get_report_html(trace_id: str, request: Request):
         raise HTTPException(status_code=404, detail=f"No audit entries found for trace_id: {trace_id}")
     # Reconstruct a minimal result for report generation
     raise HTTPException(status_code=501, detail="Use POST /report to generate report from full adjudication result.")
+
+
+@app.post(
+    "/imaging/classify",
+    summary     = "Classify a brain MRI scan using the Swin Transformer model",
+    description = (
+        "Accepts a brain MRI image (JPG/PNG) and returns classification results "
+        "from the Swin Transformer model hosted on Hugging Face Spaces. "
+        "Returns predicted class, confidence, ICD-10 code, and full probability distribution."
+    ),
+    tags=["Imaging"],
+)
+async def imaging_classify(request: Request):
+    """
+    Accepts multipart/form-data with an 'image' file field.
+    Returns structured JSON with classification result.
+    """
+    try:
+        form    = await request.form()
+        imgfile = form.get("image")
+        if imgfile is None:
+            raise HTTPException(status_code=422, detail="No 'image' field in form data")
+
+        image_bytes = await imgfile.read()
+        filename    = getattr(imgfile, "filename", "scan.jpg") or "scan.jpg"
+
+        if len(image_bytes) == 0:
+            raise HTTPException(status_code=422, detail="Empty image file")
+
+        logger.info(f"Imaging classify: {filename} ({len(image_bytes):,} bytes)")
+        result = await classify_mri_image(image_bytes, filename)
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Imaging classify error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get(
+    "/imaging/status",
+    summary="Check Hugging Face Space availability",
+    tags=["Imaging"],
+)
+async def imaging_status():
+    """Returns the current status of the HF Space inference endpoint."""
+    return get_space_status()
 
 
 @app.post(
