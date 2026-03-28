@@ -293,7 +293,6 @@ def _result_to_response(result) -> DecisionResponse:
 
 @app.post(
     "/adjudicate",
-    response_model = DecisionResponse,
     summary        = "Adjudicate a single claim",
     description    = (
         "Processes a single healthcare claim through the full 9-stage pipeline. "
