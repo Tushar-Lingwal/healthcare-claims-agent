@@ -42,6 +42,7 @@ from agent.logging.audit_logger import get_audit_logger, reset_audit_logger
 from agent.logging.audit_exporter import AuditExporter
 from agent.reporting.report_generator import ReportGenerator
 from agent.imaging.swin_classifier import classify_mri_image, get_space_status
+from agent.moe.moe_orchestrator import run_moe, moe_result_to_dict
 from agent.reporting.llm_report_writer import (
     generate_llm_narrative, _rule_based_narrative, build_full_report_html
 )
@@ -320,6 +321,40 @@ async def adjudicate(req: AdjudicateRequest, request: Request, current_user=Depe
     # ── Pipeline ──────────────────────────────────────────────────────────
     result = request.app.state.pipeline.process(tokenized)
 
+    # ── MoE Expert Analysis (post-pipeline, pre-response) ─────────────────
+    moe_data = None
+    try:
+        # Build entity dict from pipeline result
+        icd_list = [{"code":c.code,"description":c.description,"confidence":c.confidence}
+                    for c in result.icd10_codes]
+        cpt_list = [{"code":c.code,"description":c.description,"confidence":c.confidence}
+                    for c in result.cpt_codes]
+        entities = {
+            "diagnoses":  [c.description for c in result.icd10_codes],
+            "procedures": [c.description for c in result.cpt_codes],
+            "symptoms":   [],
+            "medications":[],
+            "raw_text":   raw_claim.clinical_notes,
+        }
+        # Add structured data if present
+        if raw_claim.structured_data:
+            entities["diagnoses"]  += list(raw_claim.structured_data.diagnoses or [])
+            entities["procedures"] += list(raw_claim.structured_data.procedures or [])
+            entities["medications"]+= list(raw_claim.structured_data.medications or [])
+
+        moe_outcome = await run_moe(
+            extracted_entities = entities,
+            icd10_codes        = icd_list,
+            cpt_codes          = cpt_list,
+            clinical_notes     = raw_claim.clinical_notes,
+            imaging_result     = None,
+        )
+        moe_data = moe_result_to_dict(moe_outcome)
+        logger.info(f"MoE: experts={moe_outcome.activated_experts} risk={moe_outcome.consensus_risk}")
+    except Exception as moe_err:
+        logger.warning(f"MoE error (non-fatal): {moe_err}")
+        moe_data = {"skipped": True, "reason": str(moe_err)}
+
     elapsed = int((time.monotonic() - start) * 1000)
     logger.info(
         f"POST /adjudicate → {result.decision.value} "
@@ -327,7 +362,9 @@ async def adjudicate(req: AdjudicateRequest, request: Request, current_user=Depe
         f"claim={result.claim_id}"
     )
 
-    return _result_to_response(result)
+    response = _result_to_response(result)
+    response["moe_analysis"] = moe_data
+    return response
 
 
 @app.post(
