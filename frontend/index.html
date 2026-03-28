@@ -10,8 +10,7 @@
 <style>
 :root{
   --bg:#0b0f1a;
-  --bg2:#0f172a;
-  --glass:rgba(255,255,255,0.06);
+  --glass:rgba(255,255,255,0.05);
   --border:rgba(255,255,255,0.08);
   --text:#e5e7eb;
   --muted:#94a3b8;
@@ -20,14 +19,20 @@
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
+
 body{
   font-family:'DM Sans',sans-serif;
-  background: radial-gradient(circle at 20% 20%, rgba(59,130,246,0.15), transparent 40%),
-              radial-gradient(circle at 80% 70%, rgba(139,92,246,0.15), transparent 40%),
-              var(--bg);
   color:var(--text);
   overflow-x:hidden;
   transition:opacity .3s ease;
+
+  /* BACKGROUND IMAGE + GRADIENT OVERLAY */
+  background:
+    linear-gradient(rgba(11,15,26,0.85), rgba(11,15,26,0.95)),
+    url("https://images.unsplash.com/photo-1581091870627-3c8f6c3f6a92?q=80&w=1920&auto=format&fit=crop");
+  background-size:cover;
+  background-position:center;
+  background-attachment:fixed;
 }
 
 /* NAV */
@@ -67,6 +72,25 @@ nav{
   text-align:center;
   flex-direction:column;
   padding:120px 20px 60px;
+  position:relative;
+}
+
+/* GLOW ORB */
+.hero::before{
+  content:"";
+  position:absolute;
+  width:500px;
+  height:500px;
+  background:radial-gradient(circle, rgba(59,130,246,0.25), transparent);
+  filter:blur(120px);
+  top:-100px;
+  left:-100px;
+  animation:float 8s infinite alternate ease-in-out;
+}
+
+@keyframes float{
+  0%{transform:translate(0,0)}
+  100%{transform:translate(60px,40px)}
 }
 
 .hero h1{
@@ -95,6 +119,7 @@ nav{
   gap:15px;
 }
 
+/* BUTTONS */
 .btn{
   padding:12px 22px;
   border-radius:10px;
@@ -142,7 +167,7 @@ nav{
   box-shadow:0 20px 50px rgba(0,0,0,0.5);
 }
 
-/* FEATURES */
+/* SECTIONS */
 .section{
   padding:100px 40px;
   max-width:1200px;
@@ -202,7 +227,7 @@ footer{
   color:var(--muted);
 }
 
-/* ANIMATIONS */
+/* ANIMATION */
 .fade{
   opacity:0;
   transform:translateY(20px);
@@ -276,7 +301,6 @@ footer{
 </footer>
 
 <script>
-/* SCROLL ANIMATION */
 const observer = new IntersectionObserver(entries=>{
   entries.forEach(e=>{
     if(e.isIntersecting){
@@ -289,7 +313,6 @@ document.querySelectorAll('.fade').forEach(el=>{
   observer.observe(el);
 });
 
-/* PAGE TRANSITION */
 function go(url){
   document.body.style.opacity=0;
   setTimeout(()=>{window.location=url},300);
