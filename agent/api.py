@@ -344,6 +344,7 @@ async def adjudicate(req: AdjudicateRequest, request: Request, current_user=Depe
             entities["procedures"] += list(raw_claim.structured_data.procedures or [])
             entities["medications"]+= list(raw_claim.structured_data.medications or [])
 
+        print(f"[MOE DEBUG] calling run_moe with {len(icd_list)} ICD codes, {len(cpt_list)} CPT codes, notes_len={len(raw_claim.clinical_notes)}", flush=True)
         moe_outcome = await run_moe(
             extracted_entities = entities,
             icd10_codes        = icd_list,
@@ -352,9 +353,12 @@ async def adjudicate(req: AdjudicateRequest, request: Request, current_user=Depe
             imaging_result     = None,
         )
         moe_data = moe_result_to_dict(moe_outcome)
-        logger.info(f"MoE: experts={moe_outcome.activated_experts} risk={moe_outcome.consensus_risk}")
+        logger.info(f"MoE: experts={moe_outcome.activated_experts} risk={moe_outcome.consensus_risk} skipped={moe_outcome.skipped}")
+        print(f"[MOE DEBUG] activated={moe_outcome.activated_experts} skipped={moe_outcome.skipped} data_keys={list(moe_data.keys()) if moe_data else None}", flush=True)
     except Exception as moe_err:
         logger.warning(f"MoE error (non-fatal): {moe_err}")
+        print(f"[MOE ERROR] {moe_err}", flush=True)
+        import traceback; traceback.print_exc()
         moe_data = {"skipped": True, "reason": str(moe_err)}
 
     elapsed = int((time.monotonic() - start) * 1000)
