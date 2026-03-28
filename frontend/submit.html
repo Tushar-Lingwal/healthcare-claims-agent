@@ -457,8 +457,14 @@ async function submitClaim(){
 
     if(!res.ok){toast(`Error: ${data.detail||'Request failed'}`,'err');return}
 
-    // Store result
-    const enriched={...data,_notes:payload.clinical_notes,_name:payload.patient_info.name,_plan:payload.patient_info.insurance_plan};
+    // Store result — explicitly preserve moe_analysis
+    const enriched = Object.assign({}, data, {
+      _notes: payload.clinical_notes,
+      _name:  payload.patient_info.name,
+      _plan:  payload.patient_info.insurance_plan,
+      moe_analysis: data.moe_analysis || null,
+    });
+    console.log('[SUBMIT] moe_analysis in response:', !!data.moe_analysis, data.moe_analysis);
     const claims=JSON.parse(localStorage.getItem('claimiq_claims')||'[]');
     claims.unshift(enriched);
     localStorage.setItem('claimiq_claims',JSON.stringify(claims.slice(0,100)));
