@@ -1,0 +1,39 @@
+# Netlify configuration for ClaimIQ frontend
+# Deploys the /frontend folder as a static site
+
+[build]
+  publish = "frontend"
+  command = "echo 'Static site — no build step needed'"
+
+# Redirect /api/* to the Railway backend (update URL after Railway deploy)
+[[redirects]]
+  from = "/api/*"
+  to = "https://YOUR-RAILWAY-URL.railway.app/:splat"
+  status = 200
+  force = true
+
+# SPA fallback — all routes serve index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' https://*.railway.app http://localhost:8000;"
+
+# Cache HTML files briefly, assets longer
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=300"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

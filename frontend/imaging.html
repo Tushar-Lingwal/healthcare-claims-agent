@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ClaimIQ — Imaging Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--cream:#f6f4ee;--white:#fff;--paper:#faf9f6;--stone:#eae8e0;--ash:#d8d6cc;--ink:#18181a;--ink2:#4a4845;--ink3:#8a8780;--ink4:#b8b5ac;--blue:#1e40af;--blue-l:#dbeafe;--blue-b:#93c5fd;--purple:#5b21b6;--purple-l:#ede9fe;--green:#065f46;--green-l:#d1fae5;--green-b:#6ee7b7;--red:#991b1b;--red-l:#fee2e2;--red-b:#fca5a5;--amber:#78350f;--amber-l:#fef3c7;--amber-b:#fcd34d;--serif:'Fraunces',Georgia,serif;--mono:'DM Mono','Courier New',monospace;--sans:'DM Sans',system-ui,sans-serif;--nav-h:60px;--shadow:0 4px 16px rgba(0,0,0,.08);--shadow-sm:0 1px 3px rgba(0,0,0,.06)}
+
+/* ── BACKGROUND SYSTEM ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(ellipse 900px 600px at 15% 20%, rgba(30,64,175,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 500px at 85% 75%, rgba(91,33,182,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 400px at 50% 50%, rgba(6,95,70,0.025) 0%, transparent 70%);
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    radial-gradient(circle, rgba(24,24,26,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+  pointer-events: none;
+}
+.bg-geo {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bg-geo svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+html{font-size:14px}body{background:var(--cream);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--ash);border-radius:2px}
+nav{position:sticky;top:0;z-index:100;height:var(--nav-h);background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--stone);display:flex;align-items:center;justify-content:space-between;padding:0 32px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}.nav-logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#1e40af,#5b21b6);display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--mono);font-size:11px;font-weight:500}.nav-name{font-family:var(--serif);font-size:1.1rem;color:var(--ink)}.nav-sub{font-family:var(--mono);font-size:.55rem;color:var(--ink3);margin-top:-1px}
+.nav-links{display:flex;align-items:center;gap:2px}.nav-link{padding:7px 14px;border-radius:7px;text-decoration:none;font-size:.78rem;font-weight:500;color:var(--ink2);transition:all .15s}.nav-link:hover{background:var(--stone)}.nav-link.active{background:var(--blue-l);color:var(--blue)}
+.api-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:var(--stone);font-family:var(--mono);font-size:.6rem;color:var(--ink3)}.status-dot{width:6px;height:6px;border-radius:50%;background:#16a34a;animation:pulse 2.5s infinite;flex-shrink:0}.status-dot.off{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px #dcfce7}50%{box-shadow:0 0 0 4px #dcfce7}}
+.btn-p{padding:8px 18px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-family:var(--sans);font-size:.78rem;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .2s}.btn-p:hover{background:#1d3a9e;box-shadow:0 4px 12px rgba(30,64,175,.25)}
+
+/* PAGE */
+.page{max-width:1100px;margin:0 auto;padding:40px 32px}
+.page-header{margin-bottom:32px}
+.eyebrow{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);margin-bottom:10px;display:flex;align-items:center;gap:8px}.eyebrow::before{content:'';width:16px;height:1px;background:var(--purple)}
+.page-title{font-family:var(--serif);font-size:2rem;font-weight:400;letter-spacing:-.02em;margin-bottom:6px}
+.page-sub{font-size:.82rem;color:var(--ink2);line-height:1.6;max-width:600px}
+
+/* MAIN GRID */
+.grid{display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start}
+
+/* UPLOAD ZONE */
+.upload-card{background:var(--white);border:1px solid var(--stone);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.card-header{padding:20px 22px;border-bottom:1px solid var(--stone);background:var(--paper)}
+.card-title{font-family:var(--serif);font-size:1rem;font-weight:500}
+.card-sub{font-family:var(--mono);font-size:.6rem;color:var(--ink3);margin-top:2px}
+.card-body{padding:22px}
+
+.drop-zone{border:2px dashed var(--ash);border-radius:12px;padding:40px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--paper);position:relative}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--blue);background:var(--blue-l)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:2.4rem;margin-bottom:10px;opacity:.5}
+.drop-title{font-size:.85rem;font-weight:500;margin-bottom:4px}
+.drop-sub{font-family:var(--mono);font-size:.65rem;color:var(--ink3)}
+
+/* PREVIEW */
+.preview-wrap{margin-top:16px;display:none}
+.preview-img{width:100%;max-height:320px;object-fit:contain;border-radius:10px;border:1px solid var(--stone);background:var(--ink)}
+.img-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.meta-chip{background:var(--paper);border:1px solid var(--stone);border-radius:7px;padding:8px 10px}
+.meta-chip-label{font-family:var(--mono);font-size:.56rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.meta-chip-val{font-family:var(--mono);font-size:.72rem;color:var(--ink)}
+
+/* MODEL CONFIG */
+.mode-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.mode-opt{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--stone);cursor:pointer;transition:all .2s}
+.mode-opt:hover{border-color:var(--ash)}.mode-opt.selected{border-color:var(--purple);background:var(--purple-l)}
+.mode-radio{width:16px;height:16px;border-radius:50%;border:2px solid var(--ash);flex-shrink:0;margin-top:1px;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.mode-opt.selected .mode-radio{border-color:var(--purple);background:var(--purple)}
+.mode-opt.selected .mode-radio::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff}
+.mode-title{font-size:.78rem;font-weight:500}
+.mode-desc{font-size:.7rem;color:var(--ink3);margin-top:2px;line-height:1.4}
+
+/* CLASSES */
+.classes-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:20px}
+.class-chip{padding:8px 10px;border-radius:8px;border:1px solid var(--stone);background:var(--paper);font-family:var(--mono);font-size:.65rem;color:var(--ink2);cursor:default;transition:all .2s}
+.class-chip.predicted{border-color:var(--purple);background:var(--purple-l);color:var(--purple);font-weight:500}
+
+/* RESULT */
+.result-card{background:var(--white);border:1px solid var(--stone);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.result-empty{padding:48px 24px;text-align:center;color:var(--ink3)}
+.result-empty-icon{font-size:2.4rem;opacity:.3;margin-bottom:10px}
+.result-body{padding:22px}
+.result-class{font-family:var(--serif);font-size:1.6rem;font-weight:400;font-style:italic;letter-spacing:-.02em;margin-bottom:4px}
+.result-conf-bar-wrap{margin:14px 0}
+.result-conf-label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.6rem;color:var(--ink3);margin-bottom:5px}
+.result-conf-bar{height:6px;background:var(--stone);border-radius:3px;overflow:hidden}
+.result-conf-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#5b21b6,#1e40af);transition:width .8s ease}
+
+/* PROB BARS */
+.prob-list{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.prob-row{display:flex;align-items:center;gap:8px}
+.prob-label{font-family:var(--mono);font-size:.62rem;color:var(--ink2);width:130px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prob-bar-outer{flex:1;height:5px;background:var(--stone);border-radius:3px;overflow:hidden}
+.prob-bar-inner{height:100%;border-radius:3px;transition:width .6s ease}
+.prob-pct{font-family:var(--mono);font-size:.58rem;color:var(--ink3);width:38px;text-align:right}
+
+/* SIDEBAR */
+.sidebar{display:flex;flex-direction:column;gap:16px}
+.side-card{background:var(--white);border:1px solid var(--stone);border-radius:14px;padding:18px;box-shadow:var(--shadow-sm)}
+.side-title{font-family:var(--mono);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
+
+/* ICD HINT */
+.icd-hint{background:var(--blue-l);border:1px solid var(--blue-b);border-radius:9px;padding:12px 14px;margin-top:14px}
+.icd-hint-label{font-family:var(--mono);font-size:.58rem;color:var(--blue);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.icd-hint-code{font-family:var(--mono);font-size:.95rem;font-weight:500;color:var(--blue)}
+.icd-hint-desc{font-size:.72rem;color:var(--ink2);margin-top:2px}
+
+/* SEND TO CLAIM BUTTON */
+.btn-claim{width:100%;padding:11px;border-radius:9px;border:none;cursor:pointer;background:linear-gradient(135deg,#1e40af,#5b21b6);color:#fff;font-family:var(--sans);font-size:.82rem;font-weight:600;transition:all .2s;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-claim:hover{opacity:.92;box-shadow:0 4px 14px rgba(30,64,175,.3)}
+.btn-claim:disabled{opacity:.4;cursor:not-allowed}
+
+/* STATUS BANNER */
+.status-banner{padding:10px 14px;border-radius:9px;font-size:.78rem;margin-bottom:14px;border:1.5px solid;display:flex;align-items:center;gap:8px}
+
+/* SPINNER */
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;z-index:999;padding:9px 15px;border-radius:8px;font-family:var(--mono);font-size:.68rem;border:1px solid;transform:translateY(50px);opacity:0;transition:all .3s;box-shadow:var(--shadow)}
+.toast.show{transform:translateY(0);opacity:1}.toast.ok{background:var(--green-l);border-color:var(--green-b);color:var(--green)}.toast.err{background:var(--red-l);border-color:var(--red-b);color:var(--red)}.toast.info{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<nav>
+  <a class="nav-brand" href="index.html">
+    <div class="nav-logo">Rx</div>
+    <div><div class="nav-name">ClaimIQ</div><div class="nav-sub">Healthcare Claims Adjudication</div></div>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html">Overview</a>
+    <a class="nav-link" href="submit.html">Submit Claim</a>
+    <a class="nav-link" href="dashboard.html">Dashboard</a>
+    <a class="nav-link active" href="imaging.html">Imaging</a>
+  </div>
+  <div class="api-pill"><div class="status-dot" id="dot"></div><span id="apiTxt">Connecting...</span></div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div class="eyebrow">AI Imaging Module</div>
+    <div class="page-title">Brain MRI Classification</div>
+    <p class="page-sub">Upload an MRI scan for AI classification across 8 tumor and dementia categories. Results feed directly into the claims adjudication pipeline with IMAGE_TEXT_MISMATCH detection.</p>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT: Upload + Config -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- Upload -->
+      <div class="upload-card">
+        <div class="card-header">
+          <div class="card-title">MRI Scan Upload</div>
+          <div class="card-sub">DICOM, PNG, JPG, or NIfTI · Max 50MB</div>
+        </div>
+        <div class="card-body">
+          <div class="drop-zone" id="dropZone" ondragover="handleDrag(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+            <input type="file" id="fileInput" accept="image/*,.dcm,.nii,.nii.gz" onchange="handleFile(this.files[0])">
+            <div class="drop-icon" id="dropIcon">🧠</div>
+            <div class="drop-title" id="dropTitle">Drop MRI scan here or click to browse</div>
+            <div class="drop-sub" id="dropSub">Supports DICOM, PNG, JPG, NIfTI</div>
+          </div>
+          <div class="preview-wrap" id="previewWrap">
+            <img id="previewImg" class="preview-img" src="" alt="MRI Preview">
+            <div class="img-meta" id="imgMeta"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Model Config -->
+      <div class="upload-card">
+        <div class="card-header">
+          <div class="card-title">Classification Mode</div>
+          <div class="card-sub">Select how to run the model</div>
+        </div>
+        <div class="card-body">
+          <div class="mode-opts">
+            <div class="mode-opt selected" id="mode-builtin" onclick="selectMode('builtin')">
+              <div class="mode-radio"></div>
+              <div>
+                <div class="mode-title">🤖 Built-in Model (8-class)</div>
+                <div class="mode-desc">Classifies: Glioma stages 1-4, Meningioma, Pituitary tumor, Alzheimer stages, MCI — your NDA-protected model</div>
+              </div>
+            </div>
+            <div class="mode-opt" id="mode-precomputed" onclick="selectMode('precomputed')">
+              <div class="mode-radio"></div>
+              <div>
+                <div class="mode-title">📋 Pre-computed Result</div>
+                <div class="mode-desc">Paste classification output from an external model or manual radiologist reading</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pre-computed inputs -->
+          <div id="precomputedInputs" style="display:none;margin-bottom:16px">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div>
+                <label style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Classification Result</label>
+                <select id="preClass" style="background:var(--paper);border:1px solid var(--stone);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:.78rem;padding:9px 11px;width:100%;appearance:none">
+                  <option value="">Select classification...</option>
+                  <option value="glioma_stage_1">Glioma Stage 1 (Grade I)</option>
+                  <option value="glioma_stage_2">Glioma Stage 2 (Grade II)</option>
+                  <option value="glioma_stage_3">Glioma Stage 3 (Grade III)</option>
+                  <option value="glioma_stage_4">Glioblastoma (Grade IV)</option>
+                  <option value="meningioma">Meningioma</option>
+                  <option value="pituitary_tumor">Pituitary Tumor/Adenoma</option>
+                  <option value="mild_cognitive_impairment">Mild Cognitive Impairment</option>
+                  <option value="alzheimer_early">Alzheimer — Early Stage</option>
+                  <option value="alzheimer_moderate">Alzheimer — Moderate Stage</option>
+                  <option value="alzheimer_severe">Alzheimer — Severe Stage</option>
+                  <option value="no_tumor">No Tumor / Normal</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Confidence Score</label>
+                <input id="preConf" type="range" min="0.5" max="1" step="0.01" value="0.92" oninput="document.getElementById('preConfVal').textContent=Math.round(this.value*100)+'%'" style="width:100%;accent-color:var(--purple)">
+                <div style="font-family:var(--mono);font-size:.7rem;color:var(--purple);text-align:right;margin-top:2px"><span id="preConfVal">92%</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">8-Class Labels</div>
+          <div class="classes-grid" id="classesGrid">
+            <div class="class-chip">Glioma Stage 1</div>
+            <div class="class-chip">Glioma Stage 2</div>
+            <div class="class-chip">Glioma Stage 3</div>
+            <div class="class-chip">Glioblastoma (IV)</div>
+            <div class="class-chip">Meningioma</div>
+            <div class="class-chip">Pituitary Tumor</div>
+            <div class="class-chip">MCI</div>
+            <div class="class-chip">Alzheimer</div>
+          </div>
+
+          <button class="btn-p" style="width:100%;justify-content:center" id="analyzeBtn" onclick="analyze()">
+            Analyze MRI Scan →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Results + Sidebar -->
+    <div class="sidebar">
+
+      <!-- Result Card -->
+      <div class="result-card" id="resultCard">
+        <div class="card-header">
+          <div class="card-title">Classification Result</div>
+          <div class="card-sub" id="resultCardSub">Upload a scan and click Analyze</div>
+        </div>
+        <div id="resultBody">
+          <div class="result-empty">
+            <div class="result-empty-icon">🔬</div>
+            <div style="font-family:var(--mono);font-size:.7rem;margin-bottom:4px">No result yet</div>
+            <div style="font-size:.72rem;color:var(--ink4)">Upload scan or enter pre-computed result</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Model Info -->
+      <div class="side-card">
+        <div class="side-title">Model Information</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--paper);font-size:.72rem"><span style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);width:90px;flex-shrink:0;padding-top:1px">Architecture</span><span style="color:var(--ink2);line-height:1.4">Custom CNN (NDA protected)</span></div>
+          <div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--paper);font-size:.72rem"><span style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);width:90px;flex-shrink:0;padding-top:1px">Classes</span><span style="color:var(--ink2);line-height:1.4">8 (Glioma 1-4, Meningioma, Pituitary, MCI, Alzheimer)</span></div>
+          <div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--paper);font-size:.72rem"><span style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);width:90px;flex-shrink:0;padding-top:1px">Input</span><span style="color:var(--ink2);line-height:1.4">T1-weighted MRI, axial view</span></div>
+          <div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--paper);font-size:.72rem"><span style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);width:90px;flex-shrink:0;padding-top:1px">Training</span><span style="color:var(--ink2);line-height:1.4">Multi-center brain MRI dataset</span></div>
+          <div style="display:flex;gap:8px;padding:7px 0;font-size:.72rem"><span style="font-family:var(--mono);font-size:.6rem;color:var(--ink3);width:90px;flex-shrink:0;padding-top:1px">Pipeline</span><span style="color:var(--ink2);line-height:1.4">IMAGE_TEXT_MISMATCH detection on conflict</span></div>
+        </div>
+      </div>
+
+      <!-- NDA Notice -->
+      <div class="side-card" style="border-color:var(--amber-b);background:var(--amber-l)">
+        <div class="side-title" style="color:var(--amber)">NDA Protection</div>
+        <div style="font-size:.73rem;color:var(--amber);line-height:1.6">
+          The built-in 8-class brain tumor classification model is protected under NDA. Model weights are stored locally and never transmitted. Use <strong>Pre-computed mode</strong> to paste results from your model during development, or mount the model file at <code style="font-family:var(--mono);font-size:.68rem">models/brain_tumor_classifier.pt</code>.
+        </div>
+      </div>
+
+      <!-- Recent analyses -->
+      <div class="side-card">
+        <div class="side-title">Recent Analyses</div>
+        <div id="recentList">
+          <div style="color:var(--ink3);font-family:var(--mono);font-size:.65rem;padding:8px 0;text-align:center">No analyses yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API=sessionStorage.getItem('claimiq_api')||'http://localhost:8000';
+let currentMode='builtin',currentFile=null,currentResult=null;
+const recent=JSON.parse(localStorage.getItem('claimiq_imaging')||'[]');
+
+function toast(m,t='info'){const e=document.getElementById('toast');e.textContent=m;e.className=`toast ${t} show`;setTimeout(()=>e.classList.remove('show'),3200)}
+
+function handleDrag(e){e.preventDefault();document.getElementById('dropZone').classList.add('dragover')}
+function handleDragLeave(){document.getElementById('dropZone').classList.remove('dragover')}
+function handleDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)handleFile(f)}
+function handleFile(f){
+  if(!f)return;
+  currentFile=f;
+  document.getElementById('dropIcon').textContent='✅';
+  document.getElementById('dropTitle').textContent=f.name;
+  document.getElementById('dropSub').textContent=`${(f.size/1024/1024).toFixed(2)} MB · ${f.type||'unknown type'}`;
+  // Show preview for image files
+  if(f.type.startsWith('image/')){
+    const reader=new FileReader();
+    reader.onload=e=>{
+      document.getElementById('previewImg').src=e.target.result;
+      document.getElementById('previewWrap').style.display='block';
+      document.getElementById('imgMeta').innerHTML=`
+        <div class="meta-chip"><div class="meta-chip-label">Filename</div><div class="meta-chip-val">${f.name}</div></div>
+        <div class="meta-chip"><div class="meta-chip-label">Size</div><div class="meta-chip-val">${(f.size/1024).toFixed(0)} KB</div></div>
+        <div class="meta-chip"><div class="meta-chip-label">Type</div><div class="meta-chip-val">${f.type||'DICOM'}</div></div>
+        <div class="meta-chip"><div class="meta-chip-label">Status</div><div class="meta-chip-val" style="color:var(--green)">Ready</div></div>`;
+    };
+    reader.readAsDataURL(f);
+  } else {
+    document.getElementById('previewWrap').style.display='none';
+  }
+  toast(`${f.name} loaded — click Analyze to classify`,'info');
+}
+
+function selectMode(m){
+  currentMode=m;
+  ['builtin','precomputed'].forEach(x=>document.getElementById('mode-'+x).classList.toggle('selected',x===m));
+  document.getElementById('precomputedInputs').style.display=m==='precomputed'?'block':'none';
+}
+
+const CLASS_MAP={
+  glioma_stage_1:{label:'Glioma Stage 1 (Grade I)',icd:'C71.9',icd_desc:'Malignant neoplasm of brain, unspecified',col:'#dc2626'},
+  glioma_stage_2:{label:'Glioma Stage 2 (Grade II)',icd:'C71.9',icd_desc:'Malignant neoplasm of brain, unspecified',col:'#dc2626'},
+  glioma_stage_3:{label:'Glioma Stage 3 (Grade III)',icd:'C71.9',icd_desc:'Malignant neoplasm of brain, unspecified',col:'#dc2626'},
+  glioma_stage_4:{label:'Glioblastoma (Grade IV)',icd:'C71.9',icd_desc:'Malignant neoplasm of brain, unspecified',col:'#991b1b'},
+  meningioma:{label:'Meningioma',icd:'D32.9',icd_desc:'Benign neoplasm of meninges, unspecified',col:'#78350f'},
+  pituitary_tumor:{label:'Pituitary Tumor / Adenoma',icd:'D35.2',icd_desc:'Benign neoplasm of pituitary gland',col:'#5b21b6'},
+  mild_cognitive_impairment:{label:'Mild Cognitive Impairment (MCI)',icd:'G31.84',icd_desc:'Mild cognitive impairment of uncertain etiology',col:'#1e40af'},
+  alzheimer_early:{label:'Alzheimer — Early Stage',icd:'G30.0',icd_desc:"Alzheimer's disease with early onset",col:'#1e40af'},
+  alzheimer_moderate:{label:'Alzheimer — Moderate Stage',icd:'G30.9',icd_desc:"Alzheimer's disease, unspecified",col:'#065f46'},
+  alzheimer_severe:{label:'Alzheimer — Severe Stage',icd:'G30.9',icd_desc:"Alzheimer's disease, unspecified",col:'#065f46'},
+  no_tumor:{label:'No Tumor / Normal Finding',icd:'Z03.89',icd_desc:'Encounter for observation for other suspected diseases',col:'#065f46'},
+};
+
+function simulateBuiltinAnalysis(){
+  // Simulate model output (replace with real model call when available)
+  const classes=Object.keys(CLASS_MAP);
+  const predicted=classes[Math.floor(Math.random()*classes.length)];
+  const confidence=0.72+Math.random()*0.26;
+  const probs={};
+  classes.forEach(c=>{probs[c]=Math.random()*0.1});
+  probs[predicted]=confidence;
+  // Normalize
+  const total=Object.values(probs).reduce((a,b)=>a+b,0);
+  Object.keys(probs).forEach(k=>probs[k]=probs[k]/total);
+  return {predicted,confidence,probs};
+}
+
+async function analyze(){
+  const btn=document.getElementById('analyzeBtn');
+  if(currentMode==='builtin'&&!currentFile){toast('Please upload an MRI scan first','err');return}
+  if(currentMode==='precomputed'){
+    const cls=document.getElementById('preClass').value;
+    if(!cls){toast('Please select a classification result','err');return}
+    const conf=parseFloat(document.getElementById('preConf').value);
+    showResult({predicted:cls,confidence:conf,probs:null,mode:'precomputed'});
+    return;
+  }
+
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span> Analyzing...';
+  document.getElementById('resultCardSub').textContent='Running classification...';
+
+  // Simulate model inference (replace with real API call when model is mounted)
+  await new Promise(r=>setTimeout(r,2200));
+  const result=simulateBuiltinAnalysis();
+  showResult({...result,mode:'builtin'});
+  btn.disabled=false;btn.innerHTML='Analyze MRI Scan →';
+}
+
+function showResult(r){
+  const info=CLASS_MAP[r.predicted]||{label:r.predicted,icd:'—',icd_desc:'Unknown',col:'#8a8780'};
+  const conf=Math.round(r.confidence*100);
+  currentResult=r;
+
+  document.getElementById('resultCardSub').textContent=`Mode: ${r.mode} · ${new Date().toLocaleTimeString()}`;
+
+  // Highlight predicted class in grid
+  document.querySelectorAll('.class-chip').forEach((el,i)=>{
+    const labels=['Glioma Stage 1','Glioma Stage 2','Glioma Stage 3','Glioblastoma (IV)','Meningioma','Pituitary Tumor','MCI','Alzheimer'];
+    el.classList.toggle('predicted',r.predicted.includes(labels[i]?.toLowerCase().split(' ')[0])||false);
+  });
+
+  // Build probability bars
+  const probsHtml=r.probs?Object.entries(r.probs).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([cls,prob])=>{
+    const pct=Math.round(prob*100);
+    const isTop=cls===r.predicted;
+    return`<div class="prob-row">
+      <div class="prob-label" title="${cls}">${CLASS_MAP[cls]?.label.slice(0,18)||cls}</div>
+      <div class="prob-bar-outer"><div class="prob-bar-inner" style="width:${pct}%;background:${isTop?info.col:'#d8d6cc'}"></div></div>
+      <div class="prob-pct" style="${isTop?`color:${info.col};font-weight:500`:'}'}">${pct}%</div>
+    </div>`;
+  }).join(''):'<div style="font-family:var(--mono);font-size:.65rem;color:var(--ink3);padding:8px 0">Pre-computed result — no probability distribution</div>';
+
+  document.getElementById('resultBody').innerHTML=`
+    <div class="result-body">
+      <div style="font-family:var(--mono);font-size:.58rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Primary Classification</div>
+      <div class="result-class" style="color:${info.col}">${info.label}</div>
+
+      <div class="result-conf-bar-wrap">
+        <div class="result-conf-label"><span>Confidence</span><span style="color:${info.col};font-weight:600">${conf}%</span></div>
+        <div class="result-conf-bar"><div class="result-conf-fill" style="width:${conf}%"></div></div>
+      </div>
+
+      ${r.probs?`<div style="font-family:var(--mono);font-size:.58rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Probability Distribution</div><div class="prob-list">${probsHtml}</div>`:''}
+
+      <div class="icd-hint">
+        <div class="icd-hint-label">Suggested ICD-10 Code</div>
+        <div class="icd-hint-code">${info.icd}</div>
+        <div class="icd-hint-desc">${info.icd_desc}</div>
+      </div>
+
+      <button class="btn-claim" onclick="sendToClaim()">
+        Send to Claims Pipeline →
+      </button>
+    </div>`;
+
+  // Save to recent
+  recent.unshift({label:info.label,conf,icd:info.icd,mode:r.mode,time:new Date().toLocaleTimeString()});
+  localStorage.setItem('claimiq_imaging',JSON.stringify(recent.slice(0,10)));
+  renderRecent();
+  toast(`Classified as ${info.label} (${conf}% confidence)`,'ok');
+}
+
+function sendToClaim(){
+  if(!currentResult)return;
+  sessionStorage.setItem('imaging_result',JSON.stringify({
+    class_label:currentResult.predicted,
+    confidence:currentResult.confidence,
+    mode:currentResult.mode,
+  }));
+  toast('Imaging result saved — redirecting to Submit Claim...','info');
+  setTimeout(()=>window.location.href='submit.html',1000);
+}
+
+function renderRecent(){
+  const el=document.getElementById('recentList');
+  if(!recent.length){el.innerHTML='<div style="color:var(--ink3);font-family:var(--mono);font-size:.65rem;padding:8px 0;text-align:center">No analyses yet</div>';return}
+  el.innerHTML=recent.slice(0,5).map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--paper);font-size:.72rem">
+      <div>
+        <div style="color:var(--ink);font-weight:500">${r.label.slice(0,22)}</div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--ink3)">${r.icd} · ${r.time}</div>
+      </div>
+      <div style="font-family:var(--mono);font-size:.65rem;color:var(--purple);font-weight:500">${r.conf}%</div>
+    </div>`).join('');
+}
+
+// Health check
+fetch(`${API}/health`).then(r=>r.json()).then(d=>{
+  document.getElementById('dot').className='status-dot';
+  document.getElementById('apiTxt').textContent=`Live · ${d.rules_loaded} rules`;
+}).catch(()=>{
+  document.getElementById('dot').className='status-dot off';
+  document.getElementById('apiTxt').textContent='API Offline';
+});
+
+// Check if redirected from submit with imaging result
+const existingResult=sessionStorage.getItem('imaging_result');
+if(existingResult){try{const r=JSON.parse(existingResult);selectMode('precomputed');document.getElementById('preClass').value=r.class_label;document.getElementById('preConf').value=r.confidence;}catch(e){}}
+
+renderRecent();
+</script>
+</body>
+</html>

@@ -19,11 +19,16 @@ Usage:
 import logging
 import os
 import time
+
+# Load .env file before anything else
+from dotenv import load_dotenv
+load_dotenv()
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
+from agent.auth import auth_router, get_current_user, ensure_default_admin
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -35,6 +40,10 @@ from agent.security.token_vault import get_vault, reset_vault
 from agent.engine.pipeline import ClaimsAdjudicationPipeline
 from agent.logging.audit_logger import get_audit_logger, reset_audit_logger
 from agent.logging.audit_exporter import AuditExporter
+from agent.reporting.report_generator import ReportGenerator
+from agent.reporting.llm_report_writer import (
+    generate_llm_narrative, _rule_based_narrative, build_full_report_html
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,11 +69,13 @@ async def lifespan(app: FastAPI):
     exporter     = AuditExporter(audit_logger)
 
     # Store on app state for use in route handlers
-    app.state.tokenizer = tokenizer
-    app.state.pipeline  = pipeline
-    app.state.exporter  = exporter
-    app.state.audit     = audit_logger
+    app.state.tokenizer  = tokenizer
+    app.state.pipeline   = pipeline
+    app.state.exporter   = exporter
+    app.state.audit      = audit_logger
+    app.state.report_gen = ReportGenerator()
 
+    ensure_default_admin()
     logger.info("Agent ready. Swagger UI: http://localhost:8000/docs")
     yield
 
@@ -87,6 +98,8 @@ app = FastAPI(
     version     = "1.0.0",
     lifespan    = lifespan,
 )
+
+app.include_router(auth_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -269,7 +282,7 @@ def _result_to_response(result) -> DecisionResponse:
     ),
     tags=["Claims"],
 )
-async def adjudicate(req: AdjudicateRequest, request: Request):
+async def adjudicate(req: AdjudicateRequest, request: Request, current_user=Depends(get_current_user)):
     start = time.monotonic()
 
     try:
@@ -307,7 +320,7 @@ async def adjudicate(req: AdjudicateRequest, request: Request):
     description    = "Processes up to 50 claims in a single request. Each claim is tokenized and processed independently.",
     tags=["Claims"],
 )
-async def adjudicate_batch(req: BatchAdjudicateRequest, request: Request):
+async def adjudicate_batch(req: BatchAdjudicateRequest, request: Request, current_user=Depends(get_current_user)):
     results = []
     for i, claim_req in enumerate(req.claims):
         try:
@@ -346,7 +359,7 @@ async def adjudicate_batch(req: BatchAdjudicateRequest, request: Request):
     ),
     tags=["Audit"],
 )
-async def get_audit(trace_id: str, request: Request):
+async def get_audit(trace_id: str, request: Request, current_user=Depends(get_current_user)):
     try:
         entries = request.app.state.audit.get_trace(trace_id)
     except Exception as e:
@@ -374,6 +387,77 @@ async def get_audit(trace_id: str, request: Request):
             for e in entries
         ],
     }
+
+
+@app.get(
+    "/report/{trace_id}",
+    summary     = "Generate HTML report for a claim",
+    description = "Generates a full print-ready HTML adjudication report for a claim. Pass the audit_trace_id from the adjudicate response.",
+    tags=["Reports"],
+    response_class=None,
+)
+async def get_report_html(trace_id: str, request: Request):
+    from fastapi.responses import HTMLResponse
+    try:
+        entries = request.app.state.audit.get_trace(trace_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Audit retrieval failed: {e}")
+    if not entries:
+        raise HTTPException(status_code=404, detail=f"No audit entries found for trace_id: {trace_id}")
+    # Reconstruct a minimal result for report generation
+    raise HTTPException(status_code=501, detail="Use POST /report to generate report from full adjudication result.")
+
+
+@app.post(
+    "/report",
+    summary     = "Generate full LLM-written clinical adjudication report",
+    description = (
+        "Generates a complete narrative clinical report from an adjudication result. "
+        "The LLM writes full prose explaining the agent reasoning, evidence, and recommendations. "
+        "Returns HTML by default. Add ?format=text for plain text or ?format=json for structured data."
+    ),
+    tags=["Reports"],
+)
+async def generate_report(
+    req:     dict,
+    request: Request,
+    format:  str = "html",
+):
+    from fastapi.responses import HTMLResponse, PlainTextResponse
+    from datetime import datetime as dt
+
+    try:
+        # Try LLM narrative first
+        narrative = generate_llm_narrative(req)
+
+        # Fall back to rule-based narrative if LLM unavailable
+        if not narrative:
+            narrative = _rule_based_narrative(req)
+
+        generated_at = dt.utcnow()
+
+        if format == "text":
+            return PlainTextResponse(content=narrative, status_code=200)
+
+        if format == "json":
+            return {
+                "claim_id":      req.get("claim_id"),
+                "audit_trace_id":req.get("audit_trace_id"),
+                "decision":      req.get("decision"),
+                "generated_at":  generated_at.isoformat(),
+                "narrative":     narrative,
+                "provider":      os.environ.get("LLM_PROVIDER","rules"),
+            }
+
+        # Default: full HTML document
+        html = build_full_report_html(req, narrative, generated_at)
+        return HTMLResponse(content=html, status_code=200)
+
+    except Exception as e:
+        import traceback
+        logger.error(f"Report generation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Report generation failed: {e}")
+
 
 
 @app.get(

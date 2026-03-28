@@ -55,23 +55,24 @@ for k, v in defaults.items():
         os.environ[k] = v
 
 # ── Step 4: Print status ──────────────────────────────────────────────────
-print()
-print("=== Starting Healthcare Claims Agent ===")
-print(f"  LLM Provider : {os.environ['LLM_PROVIDER']}")
-print(f"  Vault        : {os.environ['VAULT_BACKEND']}")
-print(f"  Audit        : {os.environ['AUDIT_BACKEND']}")
-print(f"  RAG          : {os.environ['RAG_BACKEND']}")
-print(f"  Vault key    : SET ({len(os.environ['PHI_VAULT_KEY'])} chars)")
-print()
-print("  Swagger UI   : http://localhost:8000/docs")
-print("  API docs     : http://localhost:8000/redoc")
-print()
+if __name__ == "__main__":
+    print()
+    print("=== Starting Healthcare Claims Agent ===")
+    print(f"  LLM Provider : {os.environ['LLM_PROVIDER']}")
+    print(f"  Vault        : {os.environ['VAULT_BACKEND']}")
+    print(f"  Audit        : {os.environ['AUDIT_BACKEND']}")
+    print(f"  RAG          : {os.environ['RAG_BACKEND']}")
+    print(f"  Vault key    : SET ({len(os.environ['PHI_VAULT_KEY'])} chars)")
+    print()
+    print("  Swagger UI   : http://localhost:8000/docs")
+    print("  API docs     : http://localhost:8000/redoc")
+    print()
 
-# ── Step 5: Start server ──────────────────────────────────────────────────
-import uvicorn
-uvicorn.run(
-    "agent.api:app",
-    host   = os.environ.get("API_HOST", "0.0.0.0"),
-    port   = int(os.environ.get("API_PORT", "8000")),
-    reload = True,
-)
+    # ── Step 5: Start server ──────────────────────────────────────────────────
+    import uvicorn
+    uvicorn.run(
+        "agent.api:app",
+        host   = os.environ.get("API_HOST", "0.0.0.0"),
+        port   = int(os.environ.get("API_PORT", "8000")),
+        reload = False,
+    )
