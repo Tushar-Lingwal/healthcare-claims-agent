@@ -1,0 +1,2 @@
+# Force Railway to use Dockerfile, not Nixpacks
+start.py

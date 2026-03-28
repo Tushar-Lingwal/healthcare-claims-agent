@@ -12,9 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN python scripts/build_code_db.py
-RUN python scripts/build_rag_db.py
-RUN mkdir -p data/vault data/audit
+RUN python scripts/build_code_db.py && \
+    python scripts/build_rag_db.py && \
+    mkdir -p data/vault data/audit
 
 ENV VAULT_BACKEND=sqlite \
     AUDIT_BACKEND=sqlite \
@@ -26,4 +26,4 @@ ENV VAULT_BACKEND=sqlite \
 
 EXPOSE 8000
 
-ENTRYPOINT ["uvicorn", "agent.api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+ENTRYPOINT ["python", "-c", "import uvicorn; uvicorn.run('agent.api:app', host='0.0.0.0', port=8000, reload=False, workers=1)"]
