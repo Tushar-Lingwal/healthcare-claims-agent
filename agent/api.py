@@ -177,6 +177,8 @@ class DecisionResponse(BaseModel):
     rule_evaluations: list[dict]
     explainability:   Optional[dict]
     decided_at:       str
+    moe_analysis:     Optional[dict] = None
+    pipeline_version: Optional[str]  = None
 
 
 # ─────────────────────────────────────────────
@@ -363,8 +365,10 @@ async def adjudicate(req: AdjudicateRequest, request: Request, current_user=Depe
     )
 
     response = _result_to_response(result)
-    response["moe_analysis"] = moe_data
-    return response
+    # Return as dict so moe_analysis is included (Pydantic model doesn't accept dynamic keys)
+    response_dict = response.model_dump()
+    response_dict["moe_analysis"] = moe_data
+    return response_dict
 
 
 @app.post(
