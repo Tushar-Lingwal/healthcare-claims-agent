@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>ClaimIQ — Clinical Report</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<title>MedFlow AI — Clinical Report</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#09090f;--s1:#111118;--s2:#18181f;--b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.10);--t1:#e8e8f0;--t2:#8888a8;--t3:#44445a;--blue:#6b8fff;--purple:#a67fff;--green:#34d97b;--red:#ff6b6b;--mono:'DM Mono',monospace;--sans:'DM Sans',system-ui,sans-serif}
+:root{--bg:#FAFBFD;--s1:#FFFFFF;--s2:#F8F9FB;--b1:rgba(0,0,0,0.06);--b2:rgba(0,0,0,0.08);--t1:#1A1A1A;--t2:#5A5A5A;--t3:#8A8A8A;--blue:#2563EB;--purple:#7c3aed;--green:#059669;--red:#dc2626;--mono:'IBM Plex Mono',monospace;--sans:'DM Sans',sans-serif}
 html{font-size:14px}body{background:var(--bg);color:var(--t1);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
-nav{height:54px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:rgba(9,9,15,0.95);backdrop-filter:blur(12px)}
-.brand{display:flex;align-items:center;gap:9px;text-decoration:none}.mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff}.bname{font-family:var(--mono);font-size:.75rem;color:var(--t1)}
+nav{height:54px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:rgba(250,251,253,0.9);backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none}.mark{width:26px;height:26px;border-radius:6px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff}.bname{font-family:var(--mono);font-size:.75rem;color:var(--t1)}
 .nav-right{display:flex;gap:8px}
 .btn-print{padding:7px 16px;border-radius:6px;border:1px solid rgba(107,143,255,0.25);background:rgba(107,143,255,0.07);color:var(--blue);font-family:var(--mono);font-size:.62rem;cursor:pointer;transition:all .2s;display:none}
 .btn-print:hover{background:rgba(107,143,255,0.14)}.btn-print.show{display:flex;align-items:center;gap:6px}
@@ -35,18 +36,27 @@ nav{height:54px;border-bottom:1px solid var(--b1);display:flex;align-items:cente
 .error-icon{font-size:1.8rem;margin-bottom:10px;opacity:.5}
 .error-title{font-size:.88rem;font-weight:500;color:var(--red);margin-bottom:8px}
 .error-sub{font-size:.75rem;color:var(--t2);line-height:1.6;margin-bottom:18px}
-.btn-retry{padding:9px 20px;border-radius:7px;border:none;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-family:var(--sans);font-size:.78rem;cursor:pointer}
+.btn-retry{padding:9px 20px;border-radius:7px;border:none;background:var(--teal);color:#fff;font-family:var(--sans);font-size:.78rem;cursor:pointer}
 
 .report-wrap{min-height:calc(100vh - 54px)}
 iframe.rif{width:100%;border:none;display:block}
 </style>
 </head>
 <body>
-<nav>
-  <a class="brand" href="index.html"><div class="mark">Rx</div><div class="bname">ClaimIQ</div></a>
-  <div class="nav-right">
-    <button class="btn-print" id="printBtn" onclick="doPrint()">🖨 Print / PDF</button>
-    <button class="btn-close" onclick="window.close()">✕ Close</button>
+<nav class="mf-nav" style="height:64px;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50;background:rgba(250,251,253,0.9);backdrop-filter:blur(16px)">
+  <a style="display:flex;align-items:center;gap:10px;text-decoration:none" href="index.html">
+    <span style="width:30px;height:30px;border-radius:8px;background:#0B6E5F;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" style="width:16px;height:16px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+    <span style="font-weight:700;font-size:.9rem;color:#1A1A1A">MedFlow AI</span>
+  </a>
+  <div style="display:flex;gap:2px">
+    <a href="index.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#1A1A1A;background:rgba(11,110,95,0.05)">Overview</a>
+    <a href="submit.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Submit</a>
+    <a href="dashboard.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Dashboard</a>
+    <a href="imaging.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Imaging</a>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="display:flex;align-items:center;gap:6px"><div id="dot" style="width:6px;height:6px;border-radius:50%;background:#059669"></div><span id="apiTxt" style="font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:#8A8A8A">Connecting...</span></div>
+    <a href="submit.html" style="padding:8px 18px;border-radius:8px;background:#0B6E5F;color:#fff;font-size:.78rem;font-weight:600;text-decoration:none">+ New Claim</a>
   </div>
 </nav>
 
@@ -71,7 +81,7 @@ iframe.rif{width:100%;border:none;display:block}
 </div>
 
 <script>
-const API=sessionStorage.getItem('claimiq_api')||(location.hostname==='localhost'||location.hostname==='127.0.0.1'?'http://localhost:8000':'https://healthcare-claims-agent-production-a15d.up.railway.app');
+const API=sessionStorage.getItem('medflow_api')||(location.hostname==='localhost'||location.hostname==='127.0.0.1'?'http://localhost:8000':'https://healthcare-claims-agent-production-a15d.up.railway.app');
 const TIMES=[400,750,1100,1500,1900,2300];let timers=[];
 
 function startAnim(){
@@ -106,7 +116,7 @@ function showReport(html){
 function doPrint(){const iframe=document.getElementById('rif');if(iframe)iframe.contentWindow.print();}
 
 async function run(){
-  const raw=sessionStorage.getItem('claimiq_report');
+  const raw=sessionStorage.getItem('medflow_report');
   if(!raw){showError('No report data found. Go to Dashboard → select a claim → Generate Full Clinical Report.');return;}
   let data;
   try{data=JSON.parse(raw);}catch(e){showError('Could not parse report data.');return;}

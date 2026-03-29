@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>ClaimIQ — Imaging</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<title>MedFlow AI — Imaging</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#09090f;--s1:#111118;--s2:#18181f;--b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.10);--t1:#e8e8f0;--t2:#8888a8;--t3:#44445a;--blue:#6b8fff;--purple:#a67fff;--green:#34d97b;--red:#ff6b6b;--amber:#f5a623;--teal:#2dd4bf;--mono:'DM Mono',monospace;--sans:'DM Sans',system-ui,sans-serif}
+:root{--bg:#FAFBFD;--s1:#FFFFFF;--s2:#F8F9FB;--b1:rgba(0,0,0,0.06);--b2:rgba(0,0,0,0.08);--t1:#1A1A1A;--t2:#5A5A5A;--t3:#8A8A8A;--blue:#2563EB;--purple:#7c3aed;--green:#059669;--red:#dc2626;--amber:#b45309;--teal:#0B6E5F;--mono:'IBM Plex Mono',monospace;--sans:'DM Sans',sans-serif}
 html{font-size:14px}body{background:var(--bg);color:var(--t1);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
-::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#222235}
-nav{height:54px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;background:rgba(9,9,15,0.95);backdrop-filter:blur(12px);z-index:50}
-.brand{display:flex;align-items:center;gap:9px;text-decoration:none}.mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff}.bname{font-family:var(--mono);font-size:.75rem;color:var(--t1)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#ddd}
+nav{height:54px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;background:rgba(250,251,253,0.9);backdrop-filter:blur(12px);z-index:50}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none}.mark{width:26px;height:26px;border-radius:6px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff}.bname{font-family:var(--mono);font-size:.75rem;color:var(--t1)}
 .nav-links{display:flex;gap:1px}.nl{padding:5px 12px;border-radius:5px;text-decoration:none;font-size:.72rem;color:var(--t3);transition:color .15s}.nl:hover{color:var(--t2)}.nl.a{color:var(--t1)}
 .api-row{display:flex;align-items:center;gap:7px}.dot{width:5px;height:5px;border-radius:50%;background:var(--green)}.atxt{font-family:var(--mono);font-size:.58rem;color:var(--t3)}
 
@@ -54,15 +55,14 @@ input[type=range]{width:100%;accent-color:var(--purple)}
 .cls-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:14px}
 .cls-chip{background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:6px 8px;font-family:var(--mono);font-size:.6rem;color:var(--t3);transition:all .2s}
 .cls-chip.active{border-color:rgba(166,127,255,0.4);background:rgba(166,127,255,0.08);color:var(--purple)}
-.btn-analyze{width:100%;padding:10px;border-radius:7px;border:none;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-family:var(--sans);font-size:.78rem;font-weight:500;cursor:pointer;transition:opacity .2s}
+.btn-analyze{width:100%;padding:10px;border-radius:7px;border:none;background:var(--teal);color:#fff;font-family:var(--sans);font-size:.78rem;font-weight:500;cursor:pointer;transition:opacity .2s}
 .btn-analyze:hover{opacity:.87}.btn-analyze:disabled{opacity:.35;cursor:not-allowed}
 
 .sidebar{display:flex;flex-direction:column;gap:12px}
 .result-empty{padding:36px 16px;text-align:center}
 .re-icon{font-size:1.8rem;opacity:.2;margin-bottom:8px}
 .re-t{font-family:var(--mono);font-size:.65rem;color:var(--t3);margin-bottom:3px}
-/* FIX 1: was var(--t4) which doesn't exist — changed to var(--t3) */
-.re-s{font-size:.68rem;color:var(--t3)}
+.re-s{font-size:.68rem;color:var(--t4)}
 .result-body{padding:16px}
 .res-class{font-size:1.2rem;font-weight:500;margin-bottom:4px;color:var(--t1)}
 .res-conf-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.6rem;color:var(--t3);margin-bottom:5px}
@@ -98,10 +98,21 @@ input[type=range]{width:100%;accent-color:var(--purple)}
 </head>
 <body>
 <div class="toast" id="toast"></div>
-<nav>
-  <a class="brand" href="index.html"><div class="mark">Rx</div><div class="bname">ClaimIQ</div></a>
-  <div class="nav-links"><a class="nl" href="index.html">Overview</a><a class="nl" href="submit.html">Submit</a><a class="nl" href="dashboard.html">Dashboard</a><a class="nl a" href="imaging.html">Imaging</a></div>
-  <div class="api-row"><div class="dot" id="dot"></div><span class="atxt" id="atxt">Connecting...</span></div>
+<nav class="mf-nav" style="height:64px;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50;background:rgba(250,251,253,0.9);backdrop-filter:blur(16px)">
+  <a style="display:flex;align-items:center;gap:10px;text-decoration:none" href="index.html">
+    <span style="width:30px;height:30px;border-radius:8px;background:#0B6E5F;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" style="width:16px;height:16px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+    <span style="font-weight:700;font-size:.9rem;color:#1A1A1A">MedFlow AI</span>
+  </a>
+  <div style="display:flex;gap:2px">
+    <a href="index.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Overview</a>
+    <a href="submit.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Submit</a>
+    <a href="dashboard.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Dashboard</a>
+    <a href="imaging.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#1A1A1A;background:rgba(11,110,95,0.05)">Imaging</a>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="display:flex;align-items:center;gap:6px"><div id="dot" style="width:6px;height:6px;border-radius:50%;background:#059669"></div><span id="atxt" style="font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:#8A8A8A">Connecting...</span></div>
+    <a href="submit.html" style="padding:8px 18px;border-radius:8px;background:#0B6E5F;color:#fff;font-size:.78rem;font-weight:600;text-decoration:none">+ New Claim</a>
+  </div>
 </nav>
 
 <div class="page">
@@ -203,15 +214,12 @@ input[type=range]{width:100%;accent-color:var(--purple)}
 </div>
 
 <script>
-const API=sessionStorage.getItem('claimiq_api')||(location.hostname==='localhost'||location.hostname==='127.0.0.1'?'http://localhost:8000':'https://healthcare-claims-agent-production-a15d.up.railway.app');
+const API=sessionStorage.getItem('medflow_api')||(location.hostname==='localhost'||location.hostname==='127.0.0.1'?'http://localhost:8000':'https://healthcare-claims-agent-production-a15d.up.railway.app');
 let currentMode='builtin',currentResult=null;
-const recent=JSON.parse(localStorage.getItem('claimiq_imaging')||'[]');
+const recent=JSON.parse(localStorage.getItem('medflow_imaging')||'[]');
 function toast(m,t='ok'){const e=document.getElementById('toast');e.textContent=m;e.className=`toast ${t} show`;setTimeout(()=>e.classList.remove('show'),3000)}
 
-// FIX 2: Added all backend labels that swin_classifier.py can return.
-// Keys include both UI slugs (for precomp mode) AND exact backend strings (for live API).
 const CLASS_MAP={
-  // UI / precomp keys
   glioma_stage_1:{label:'Glioma Stage 1',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff6b6b',cat:'tumor'},
   glioma_stage_2:{label:'Glioma Stage 2',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff6b6b',cat:'tumor'},
   glioma_stage_3:{label:'Glioma Stage 3',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff6b6b',cat:'tumor'},
@@ -223,29 +231,7 @@ const CLASS_MAP={
   alzheimer_moderate:{label:'Alzheimer — Moderate',icd:'G30.9',desc:'Alzheimer disease',col:'#5588ff',cat:'alzheimer'},
   alzheimer_severe:{label:'Alzheimer — Severe',icd:'G30.9',desc:'Alzheimer disease',col:'#4466ff',cat:'alzheimer'},
   no_tumor:{label:'No Tumor / Normal',icd:'Z03.89',desc:'No abnormality',col:'#34d97b',cat:'normal'},
-  // FIX 2: Exact backend label strings returned by swin_classifier.py
-  'Glioma':        {label:'Glioma',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff6b6b',cat:'tumor'},
-  'Meningioma':    {label:'Meningioma',icd:'D32.9',desc:'Benign neoplasm of meninges',col:'#f5a623',cat:'tumor'},
-  'Pituitary':     {label:'Pituitary Tumor',icd:'D35.2',desc:'Benign neoplasm of pituitary gland',col:'#a67fff',cat:'tumor'},
-  'Healthy':       {label:'Healthy / Normal',icd:'Z03.89',desc:'No abnormality detected',col:'#34d97b',cat:'normal'},
-  'Non Demented':  {label:'Non Demented',icd:'Z03.89',desc:'No abnormality detected',col:'#34d97b',cat:'normal'},
-  'Mild Dementia': {label:'Mild Dementia',icd:'G30.9',desc:"Alzheimer's disease, unspecified",col:'#6b8fff',cat:'alzheimer'},
-  'Very Mild Dementia':{label:'Very Mild Dementia',icd:'G30.0',desc:"Alzheimer's disease with early onset",col:'#7799ff',cat:'alzheimer'},
-  'Moderate Dementia': {label:'Moderate Dementia',icd:'G30.9',desc:"Alzheimer's disease, unspecified",col:'#5588ff',cat:'alzheimer'},
 };
-
-// FIX 3: Robust backend-label → CLASS_MAP key resolver.
-// Tries exact match first, then case-insensitive, then slug normalization.
-function resolveClass(rawLabel){
-  if(!rawLabel) return null;
-  if(CLASS_MAP[rawLabel]) return rawLabel;
-  const lower=rawLabel.toLowerCase();
-  const exactCI=Object.keys(CLASS_MAP).find(k=>k.toLowerCase()===lower);
-  if(exactCI) return exactCI;
-  const norm=s=>s.toLowerCase().replace(/[\s\/()_-]+/g,'_').replace(/_+/g,'_');
-  const slug=Object.keys(CLASS_MAP).find(k=>norm(k)===norm(rawLabel));
-  return slug||null;
-}
 
 function handleDrag(e){e.preventDefault();document.getElementById('dropZone').classList.add('over')}
 function handleDragLeave(){document.getElementById('dropZone').classList.remove('over')}
@@ -273,7 +259,7 @@ function selMode(m){
 }
 
 function simulateBuiltin(){
-  const classes=Object.keys(CLASS_MAP).filter(k=>k===k.toLowerCase()); // UI keys only
+  const classes=Object.keys(CLASS_MAP);
   const pred=classes[Math.floor(Math.random()*classes.length)];
   const conf=0.68+Math.random()*0.30;
   const probs={};classes.forEach(c=>{probs[c]=Math.random()*0.08;});probs[pred]=conf;
@@ -301,40 +287,13 @@ async function analyze(){
     const res=await fetch(`${API}/imaging/classify`,{method:'POST',body:form});
     if(!res.ok){const e=await res.json().catch(()=>({detail:res.statusText}));throw new Error(e.detail||`HTTP ${res.status}`);}
     const data=await res.json();
-    if(data.error||data.source==='fallback'){
-      toast('Model error — simulation used','err');
-      showResult({...simulateBuiltin(),mode:'simulation'});
-    } else {
+    if(data.error||data.source==='fallback'){toast('Model error — simulation used','err');showResult({...simulateBuiltin(),mode:'simulation'});}
+    else{
       const rawClass=data.predicted_class||'';
-      // FIX 3: Use resolveClass() instead of brittle norm() inline match
-      const mapKey=resolveClass(rawClass)||rawClass;
-      // Normalize probability keys too
-      const normalizedProbs=data.all_probabilities
-        ? Object.fromEntries(
-            Object.entries(data.all_probabilities).map(([k,v])=>[resolveClass(k)||k, v])
-          )
-        : null;
-      showResult({
-        predicted: mapKey,
-        rawLabel:  rawClass,
-        confidence: data.confidence,
-        probs:      normalizedProbs,
-        icd10_code: data.icd10_code,
-        icd10_description: data.icd10_description,
-        category:   data.category,
-        mode:       'swin_transformer',
-      });
-      // FIX 4: Save full result to sessionStorage (was missing icd10, probs, category)
-      sessionStorage.setItem('imaging_result', JSON.stringify({
-        class_label:       rawClass,
-        predicted_class:   rawClass,
-        confidence:        data.confidence,
-        category:          data.category,
-        icd10_code:        data.icd10_code,
-        icd10_description: data.icd10_description,
-        all_probabilities: data.all_probabilities,
-        mode_used:         'builtin',
-      }));
+      const norm=s=>(s||'').toLowerCase().replace(/[ \/()]/g,'_').replace(/_+/g,'_');
+      const mapKey=Object.keys(CLASS_MAP).find(k=>norm(k)===norm(rawClass))||rawClass;
+      showResult({predicted:mapKey,rawLabel:rawClass,confidence:data.confidence,probs:data.all_probabilities?Object.fromEntries(Object.entries(data.all_probabilities).map(([k,v])=>[Object.keys(CLASS_MAP).find(ck=>(ck||'').toLowerCase()===k.toLowerCase())||k,v])):null,mode:'swin_transformer'});
+      sessionStorage.setItem('imaging_result',JSON.stringify({class_label:rawClass,predicted_class:rawClass,confidence:data.confidence,category:data.category,icd10_code:data.icd10_code,icd10_description:data.icd10_description,all_probabilities:data.all_probabilities,mode_used:'builtin'}));
       toast(`${rawClass} · ${Math.round(data.confidence*100)}%`,'ok');
     }
   }catch(e){toast(`Failed: ${e.message}`,'err');showResult({...simulateBuiltin(),mode:'simulation'});}
@@ -342,7 +301,7 @@ async function analyze(){
 }
 
 function showResult(r){
-  const info=CLASS_MAP[r.predicted]||CLASS_MAP[r.rawLabel]||{label:r.rawLabel||r.predicted||'Unknown',icd:r.icd10_code||'Z03.89',desc:r.icd10_description||'Unknown',col:'var(--t3)',cat:'unknown'};
+  const info=CLASS_MAP[r.predicted]||CLASS_MAP[r.rawLabel]||{label:r.rawLabel||r.predicted||'Unknown',icd:'Z03.89',desc:'Unknown',col:'var(--t3)',cat:'unknown'};
   const conf=Math.round(r.confidence*100);
   currentResult=r;
   const mLabel=r.mode==='swin_transformer'?'🧠 Swin Transformer · Live':r.mode==='precomputed'?'📋 Pre-computed':r.mode==='simulation'?'⚙ Simulation':'—';
@@ -367,34 +326,22 @@ function showResult(r){
       <button class="btn-claim" onclick="sendToClaim()">Send to Claims Pipeline →</button>
     </div>`;
 
-  // Highlight matching class chip
-  const chipLabels=['glioma_stage_1','glioma_stage_2','glioma_stage_3','glioma_stage_4','meningioma','pituitary_tumor','mild_cognitive_impairment','alzheimer_early'];
+  // Highlight class chip
   document.querySelectorAll('.cls-chip').forEach((el,i)=>{
-    el.classList.toggle('active',chipLabels[i]===r.predicted||chipLabels[i]===resolveClass(r.rawLabel));
+    const labels=['glioma_stage_1','glioma_stage_2','glioma_stage_3','glioma_stage_4','meningioma','pituitary_tumor','mild_cognitive_impairment','alzheimer_early'];
+    el.classList.toggle('active',labels[i]===r.predicted);
   });
 
   recent.unshift({label:info.label,conf,icd:info.icd,time:new Date().toLocaleTimeString()});
-  localStorage.setItem('claimiq_imaging',JSON.stringify(recent.slice(0,10)));
+  localStorage.setItem('medflow_imaging',JSON.stringify(recent.slice(0,10)));
   renderRecent();
   toast(`${info.label} · ${conf}%`,'ok');
 }
 
 function sendToClaim(){
   if(!currentResult)return;
-  const info=CLASS_MAP[currentResult.predicted]||CLASS_MAP[currentResult.rawLabel]||{};
-  // FIX 4: Save full result so submit.html has everything it needs
-  sessionStorage.setItem('imaging_result', JSON.stringify({
-    class_label:       currentResult.rawLabel||currentResult.predicted,
-    predicted_class:   currentResult.rawLabel||currentResult.predicted,
-    confidence:        currentResult.confidence,
-    category:          currentResult.category||info.cat||'unknown',
-    icd10_code:        currentResult.icd10_code||info.icd||'Z03.89',
-    icd10_description: currentResult.icd10_description||info.desc||'',
-    all_probabilities: currentResult.probs||{},
-    mode_used:         currentResult.mode||'unknown',
-  }));
-  toast('Sending to claims...');
-  setTimeout(()=>window.location.href='submit.html',800);
+  sessionStorage.setItem('imaging_result',JSON.stringify({class_label:currentResult.predicted,confidence:currentResult.confidence}));
+  toast('Sending to claims...');setTimeout(()=>window.location.href='submit.html',800);
 }
 
 function renderRecent(){

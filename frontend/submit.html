@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>ClaimIQ — Submit</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<title>MedFlow AI — Submit</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#09090f;--s1:#111118;--s2:#18181f;--s3:#202028;--b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.1);--b3:rgba(255,255,255,0.16);--t1:#e8e8f0;--t2:#8888a8;--t3:#44445a;--blue:#6b8fff;--purple:#a67fff;--green:#34d97b;--red:#ff6b6b;--amber:#f5a623;--mono:'DM Mono',monospace;--sans:'DM Sans',system-ui,sans-serif}
+:root{--bg:#FAFBFD;--s1:#FFFFFF;--s2:#F8F9FB;--s3:#F0EEEA;--b1:rgba(0,0,0,0.06);--b2:rgba(0,0,0,0.08);--b3:rgba(0,0,0,0.12);--t1:#1A1A1A;--t2:#5A5A5A;--t3:#8A8A8A;--blue:#2563EB;--purple:#7c3aed;--green:#059669;--red:#dc2626;--amber:#b45309;--mono:'IBM Plex Mono',monospace;--sans:'DM Sans',sans-serif}
 html{font-size:14px}body{background:var(--bg);color:var(--t1);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
-::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#222235}
-nav{height:54px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;background:rgba(9,9,15,0.95);backdrop-filter:blur(12px);z-index:50}
-.brand{display:flex;align-items:center;gap:9px;text-decoration:none}.mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff}.bname{font-family:var(--mono);font-size:.75rem;color:var(--t1)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#ddd}
+nav{height:54px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;background:rgba(250,251,253,0.9);backdrop-filter:blur(12px);z-index:50}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none}.mark{width:26px;height:26px;border-radius:6px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff}.bname{font-family:var(--mono);font-size:.75rem;color:var(--t1)}
 .nav-links{display:flex;gap:1px}.nl{padding:5px 12px;border-radius:5px;text-decoration:none;font-size:.72rem;color:var(--t3);transition:color .15s}.nl:hover{color:var(--t2)}.nl.a{color:var(--t1)}
 .api-row{display:flex;align-items:center;gap:7px}.dot{width:5px;height:5px;border-radius:50%;background:var(--green)}.atxt{font-family:var(--mono);font-size:.58rem;color:var(--t3)}
 
@@ -42,7 +43,7 @@ select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='htt
 .tag-input{background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.7rem;color:var(--t1);min-width:80px;flex:1}
 
 .submit-zone{padding:16px 22px;background:var(--s2);border-top:1px solid var(--b1)}
-.btn-submit{width:100%;padding:11px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-family:var(--sans);font-size:.82rem;font-weight:500;cursor:pointer;transition:opacity .2s}
+.btn-submit{width:100%;padding:11px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-family:var(--sans);font-size:.82rem;font-weight:500;cursor:pointer;transition:opacity .2s}
 .btn-submit:hover{opacity:.88}.btn-submit:disabled{opacity:.35;cursor:not-allowed}
 .submit-note{text-align:center;font-family:var(--mono);font-size:.56rem;color:var(--t3);margin-top:8px}
 
@@ -95,15 +96,21 @@ select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='htt
   </div>
 </div>
 
-<nav>
-  <a class="brand" href="index.html"><div class="mark">Rx</div><div class="bname">ClaimIQ</div></a>
-  <div class="nav-links">
-    <a class="nl" href="index.html">Overview</a>
-    <a class="nl a" href="submit.html">Submit</a>
-    <a class="nl" href="dashboard.html">Dashboard</a>
-    <a class="nl" href="imaging.html">Imaging</a>
+<nav class="mf-nav" style="height:64px;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50;background:rgba(250,251,253,0.9);backdrop-filter:blur(16px)">
+  <a style="display:flex;align-items:center;gap:10px;text-decoration:none" href="index.html">
+    <span style="width:30px;height:30px;border-radius:8px;background:#0B6E5F;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" style="width:16px;height:16px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+    <span style="font-weight:700;font-size:.9rem;color:#1A1A1A">MedFlow AI</span>
+  </a>
+  <div style="display:flex;gap:2px">
+    <a href="index.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Overview</a>
+    <a href="submit.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#1A1A1A;background:rgba(11,110,95,0.05)">Submit</a>
+    <a href="dashboard.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Dashboard</a>
+    <a href="imaging.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Imaging</a>
   </div>
-  <div class="api-row"><div class="dot" id="dot"></div><span class="atxt" id="atxt">Connecting...</span></div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="display:flex;align-items:center;gap:6px"><div id="dot" style="width:6px;height:6px;border-radius:50%;background:#059669"></div><span id="atxt" style="font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:#8A8A8A">Connecting...</span></div>
+    <a href="submit.html" style="padding:8px 18px;border-radius:8px;background:#0B6E5F;color:#fff;font-size:.78rem;font-weight:600;text-decoration:none">+ New Claim</a>
+  </div>
 </nav>
 
 <div class="page">
@@ -176,7 +183,7 @@ select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='htt
 </div>
 
 <script>
-const API=sessionStorage.getItem('claimiq_api')||(location.hostname==='localhost'||location.hostname==='127.0.0.1'?'http://localhost:8000':'https://healthcare-claims-agent-production-a15d.up.railway.app');
+const API=sessionStorage.getItem('medflow_api')||(location.hostname==='localhost'||location.hostname==='127.0.0.1'?'http://localhost:8000':'https://healthcare-claims-agent-production-a15d.up.railway.app');
 let diagTags=[],procTags=[],medTags=[],loadTimers=[];
 
 function toast(m,t='ok'){const e=document.getElementById('toast');e.textContent=m;e.className=`toast ${t} show`;setTimeout(()=>e.classList.remove('show'),3000)}
@@ -256,10 +263,10 @@ async function submitClaim(){
     if(!res.ok){toast(data.detail||'Request failed','err');btn.disabled=false;return;}
     // Store with all fields including moe_analysis
     const enriched=Object.assign({},data,{_notes:payload.clinical_notes,_name:payload.patient_info.name,_plan:payload.patient_info.insurance_plan});
-    console.log('[ClaimIQ] moe_analysis present:', !!enriched.moe_analysis, enriched.moe_analysis?.activated_experts);
-    const claims=JSON.parse(localStorage.getItem('claimiq_claims')||'[]');
+    console.log('[MedFlow AI] moe_analysis present:', !!enriched.moe_analysis, enriched.moe_analysis?.activated_experts);
+    const claims=JSON.parse(localStorage.getItem('medflow_claims')||'[]');
     claims.unshift(enriched);
-    localStorage.setItem('claimiq_claims',JSON.stringify(claims.slice(0,100)));
+    localStorage.setItem('medflow_claims',JSON.stringify(claims.slice(0,100)));
     sessionStorage.setItem('latest_result',JSON.stringify(enriched));
     const dec=data.decision;
     toast(`${data.claim_id} — ${dec.replace('_',' ').toUpperCase()}`,'ok');
