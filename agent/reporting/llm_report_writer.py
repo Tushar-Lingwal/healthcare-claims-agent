@@ -320,8 +320,8 @@ STAGE 7 — DECISION ENGINE REASONING CHAIN
 FINANCIAL CONTEXT (estimate based on procedure complexity)
 {"="*70}
 Insurance Plan:      {plan.upper()}
-Procedure Count:     {len(icd_list)} ICD-10 codes, {len(cpt_list)} CPT codes
-Estimated Complexity: {"High — brain imaging + specialist procedures" if any(c["code"].startswith(("70","78","93")) for c in cpt_list) else "Standard outpatient"}
+Procedure Count:     {len(icd_codes)} ICD-10 codes, {len(cpt_codes)} CPT codes
+Estimated Complexity: {"High — brain imaging + specialist procedures" if any(c["code"].startswith(("70","78","93")) for c in cpt_codes) else "Standard outpatient"}
 Plan Coverage Notes:  {"Basic plan — elective procedures may be excluded" if plan=="basic" else "Standard plan — prior auth required for imaging" if plan=="standard" else "Premium plan — comprehensive coverage"}
 
 For Section 12 FINANCIAL BREAKDOWN: Estimate realistic amounts based on:
