@@ -26,14 +26,15 @@ import httpx
 logger = logging.getLogger(__name__)
 
 # ── URL priority: local ngrok > HF Space ──────────────────────────────────
-LOCAL_MODEL_URL = os.environ.get("LOCAL_MODEL_URL", "").strip()
-HF_SPACE_URL    = os.environ.get(
-    "HF_SPACE_URL",
-    "https://raven004-brain-mri-classifier.hf.space",
-).strip()
+# NOTE: read at call time (inside functions) so env var changes take effect
+# after redeploy without needing to change code.
+def _get_active_url() -> str:
+    local = os.environ.get("LOCAL_MODEL_URL", "").strip()
+    hf    = os.environ.get("HF_SPACE_URL", "https://raven004-brain-mri-classifier.hf.space").strip()
+    return local if local else hf
 
-# Use local if set, otherwise HF Space
-ACTIVE_URL = LOCAL_MODEL_URL if LOCAL_MODEL_URL else HF_SPACE_URL
+def _get_source_label() -> str:
+    return "local" if os.environ.get("LOCAL_MODEL_URL", "").strip() else "hf_space"
 
 TIMEOUT = httpx.Timeout(120.0, connect=15.0)
 
@@ -88,22 +89,25 @@ async def classify_mri_image(
     Classify a brain MRI image.
     Tries LOCAL_MODEL_URL first (if set), then HF_SPACE_URL, then returns fallback.
     """
-    source_label = "local" if LOCAL_MODEL_URL else "hf_space"
+    active_url   = _get_active_url()
+    source_label = _get_source_label()
+    local_url    = os.environ.get("LOCAL_MODEL_URL", "").strip()
+    hf_url       = os.environ.get("HF_SPACE_URL", "https://raven004-brain-mri-classifier.hf.space").strip()
 
     # ── Try primary URL ───────────────────────────────────────────────────
     try:
-        logger.info(f"Calling model at: {ACTIVE_URL} (source={source_label})")
-        result = await _call_gradio_api(image_bytes, filename, ACTIVE_URL)
+        logger.info(f"Calling model at: {active_url} (source={source_label})")
+        result = await _call_gradio_api(image_bytes, filename, active_url)
         result["source"] = source_label
         return result
     except Exception as e:
-        logger.warning(f"Primary model call failed ({ACTIVE_URL}): {e}")
+        logger.warning(f"Primary model call failed ({active_url}): {e}")
 
     # ── If local failed, try HF Space as fallback ─────────────────────────
-    if LOCAL_MODEL_URL and HF_SPACE_URL:
+    if local_url and hf_url and hf_url != active_url:
         try:
-            logger.info(f"Falling back to HF Space: {HF_SPACE_URL}")
-            result = await _call_gradio_api(image_bytes, filename, HF_SPACE_URL)
+            logger.info(f"Falling back to HF Space: {hf_url}")
+            result = await _call_gradio_api(image_bytes, filename, hf_url)
             result["source"] = "hf_space_fallback"
             return result
         except Exception as e2:
@@ -221,10 +225,10 @@ def _fallback_result(error_msg: str) -> dict:
 def get_space_status() -> dict:
     """Synchronous health check — used in /health endpoint."""
     import httpx as _httpx
-    url = ACTIVE_URL
+    url    = _get_active_url()
+    source = _get_source_label()
     try:
         resp = _httpx.get(f"{url}/", timeout=12.0)
-        source = "local" if LOCAL_MODEL_URL else "hf_space"
         if resp.status_code == 200:
             return {"status": "online", "url": url, "source": source}
         return {"status": "degraded", "code": resp.status_code, "url": url}
