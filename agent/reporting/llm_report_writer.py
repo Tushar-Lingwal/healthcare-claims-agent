@@ -43,14 +43,10 @@ Generate a structured report with ALL of the following sections, using the EXACT
 ## 7. POLICY RULE EVALUATION
 ## 8. ANOMALY & RISK DETECTION
 ## 9. MULTI-AGENT REASONING SUMMARY
-## 10. COUNTERFACTUAL ANALYSIS
-## 11. FINAL ADJUDICATION DECISION
-## 12. FINANCIAL BREAKDOWN
-## 13. ACTIONABLE RECOMMENDATIONS
-## 14. EXPLAINABILITY TRACE
-## 15. COMPLIANCE & SECURITY NOTE
-## 16. IMMUTABLE AUDIT TRAIL
-## 17. APPENDIX
+## 10. FINAL ADJUDICATION DECISION
+## 11. FINANCIAL BREAKDOWN
+## 12. ACTIONABLE RECOMMENDATIONS
+## 13. APPENDIX
 
 SECTION REQUIREMENTS:
 
@@ -72,21 +68,13 @@ Section 8 - ANOMALY & RISK DETECTION: List anomalies with Severity (Low/Medium/H
 
 Section 9 - MULTI-AGENT REASONING SUMMARY: For each activated MoE expert — agent name, opinion, risk level, key flags, recommendations. If no MoE data, state not applicable.
 
-Section 10 - COUNTERFACTUAL ANALYSIS: Provide 2-4 specific "what-if" scenarios explaining exactly what changes would result in a different decision. Be specific — name codes, documents, thresholds.
+Section 10 - FINAL ADJUDICATION DECISION: Decision, Confidence Score %, 2-3 sentence justification.
 
-Section 11 - FINAL ADJUDICATION DECISION: Decision, Confidence Score %, 2-3 sentence justification.
+Section 11 - FINANCIAL BREAKDOWN: Table with Claimed Amount | Approved Amount | Deducted Amount | Deduction Reason. Use realistic estimates if exact amounts not provided. Base on procedure complexity and plan type.
 
-Section 12 - FINANCIAL BREAKDOWN: Table with Claimed Amount | Approved Amount | Deducted Amount | Deduction Reason. Use realistic estimates if exact amounts not provided. Base on procedure complexity and plan type.
+Section 12 - ACTIONABLE RECOMMENDATIONS: Numbered list. Required documents, coding corrections, clinical clarifications, next steps. Minimum 4 specific recommendations.
 
-Section 13 - ACTIONABLE RECOMMENDATIONS: Numbered list. Required documents, coding corrections, clinical clarifications, next steps. Minimum 4 specific recommendations.
-
-Section 14 - EXPLAINABILITY TRACE: Stepwise flow: Input → PHI Tokenization → NER Extraction → Medical Coding → RAG Retrieval → Rule Evaluation → MoE Analysis → Edge Detection → Decision Engine → Output.
-
-Section 15 - COMPLIANCE & SECURITY NOTE: Confirm PHI tokenization status, no PHI in logs, HIPAA-safe processing, model governance.
-
-Section 16 - IMMUTABLE AUDIT TRAIL: Timestamped events for each pipeline stage. Include Audit Hash ID from the provided audit trace ID.
-
-Section 17 - APPENDIX: Additional clinical context, model versions, any caveats.
+Section 13 - APPENDIX: Additional clinical context, model versions, any caveats.
 
 FORMATTING RULES:
 - Use markdown tables where specified — pipe-separated with header row
@@ -96,7 +84,7 @@ FORMATTING RULES:
 - Ensure decision in Section 11 matches rule evaluation in Section 7
 - NEVER reconstruct PHI — only use tokenized identifiers
 
-Total length: 2,000-3,500 words. Start directly with ## 1. REPORT HEADER."""
+Total length: 1,500-2,500 words. Start directly with ## 1. REPORT HEADER."""
 
 
 def _build_report_prompt(data: dict) -> str:
@@ -861,6 +849,7 @@ def markdown_to_html_sections(md: str) -> str:
     html   = []
     in_table = False
     table_rows = []
+    skip_section = False
 
     SECTION_COLORS = {
         "1":  "#6b8fff", "2":  "#6b8fff", "3":  "#a67fff",
@@ -896,6 +885,8 @@ def markdown_to_html_sections(md: str) -> str:
 
         # Table row
         if raw.startswith("|"):
+            if skip_section:
+                continue
             if not in_table:
                 in_table = True
                 table_rows = []
@@ -907,11 +898,27 @@ def markdown_to_html_sections(md: str) -> str:
         if not raw:
             continue
 
+        # Skip content belonging to a removed section
+        if skip_section:
+            continue
+
         # Section headers  ## N. TITLE
         import re
         m = re.match(r"^##\s+(\d+)\.\s+(.+)$", raw)
         if m:
             num, title = m.group(1), m.group(2)
+            # Skip removed sections (by title, handles old cached reports too)
+            SKIP_TITLES = {
+                "COUNTERFACTUAL ANALYSIS",
+                "EXPLAINABILITY TRACE",
+                "COMPLIANCE & SECURITY NOTE",
+                "IMMUTABLE AUDIT TRAIL",
+            }
+            if title.strip().upper() in SKIP_TITLES:
+                # Skip this section header and all content until next ## header
+                skip_section = True
+                continue
+            skip_section = False
             col = SECTION_COLORS.get(num, "#8888a8")
             html.append(
                 f'<div class="rpt-section-header" style="--sec-col:{col}">'

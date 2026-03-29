@@ -7,38 +7,47 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#FAFBFD;--s1:#FFFFFF;--s2:#F8F9FB;--b1:rgba(0,0,0,0.06);--b2:rgba(0,0,0,0.08);--t1:#1A1A1A;--t2:#5A5A5A;--t3:#8A8A8A;--blue:#2563EB;--purple:#7c3aed;--green:#059669;--red:#dc2626;--mono:'IBM Plex Mono',monospace;--sans:'DM Sans',sans-serif}
-html{font-size:14px}body{background:var(--bg);color:var(--t1);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
-nav{height:54px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:rgba(250,251,253,0.9);backdrop-filter:blur(12px)}
-.brand{display:flex;align-items:center;gap:9px;text-decoration:none}.mark{width:26px;height:26px;border-radius:6px;background:#0B6E5F;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff}.bname{font-family:var(--mono);font-size:.75rem;color:var(--t1)}
-.nav-right{display:flex;gap:8px}
-.btn-print{padding:7px 16px;border-radius:6px;border:1px solid rgba(107,143,255,0.25);background:rgba(107,143,255,0.07);color:var(--blue);font-family:var(--mono);font-size:.62rem;cursor:pointer;transition:all .2s;display:none}
-.btn-print:hover{background:rgba(107,143,255,0.14)}.btn-print.show{display:flex;align-items:center;gap:6px}
-.btn-close{padding:7px 14px;border-radius:6px;border:1px solid var(--b1);background:transparent;color:var(--t3);font-family:var(--mono);font-size:.62rem;cursor:pointer;transition:all .2s}.btn-close:hover{color:var(--t2)}
-@media print{nav{display:none}.btn-print{display:none}}
+:root{
+  --bg:#FAFBFD;--s1:#FFFFFF;--s2:#F8F9FB;--s3:#F0EEEA;--s4:#E8E6E1;
+  --b1:rgba(0,0,0,0.05);--b2:rgba(0,0,0,0.07);--b3:rgba(0,0,0,0.12);
+  --t1:#1A1A1A;--t2:#5A5A5A;--t3:#8A8A8A;--t4:#B0B0B0;
+  --blue:#2563EB;--purple:#7c3aed;--teal:#0B6E5F;
+  --green:#059669;--red:#dc2626;--amber:#b45309;
+  --serif:'Instrument Serif',serif;
+  --mono:'IBM Plex Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px}
+@media print{.mf-nav{display:none}}
 
-.loading-wrap{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 54px);padding:40px}
-.loading-card{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:32px;width:100%;max-width:420px;text-align:center}
-.spin{width:28px;height:28px;border:2px solid var(--b1);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;margin:0 auto 14px}
+/* ── LOADING ── */
+.loading-wrap{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px);padding:40px}
+.loading-card{background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:36px;width:100%;max-width:440px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.04)}
+.spin{width:30px;height:30px;border:2px solid var(--b1);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite;margin:0 auto 16px}
 @keyframes sp{to{transform:rotate(360deg)}}
-.load-title{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--t2);margin-bottom:4px}
-.load-sub{font-size:.72rem;color:var(--t3);margin-bottom:20px}
-.load-steps{display:flex;flex-direction:column;gap:7px;text-align:left}
-.ls{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--t3)}
-.ls-dot{width:6px;height:6px;border-radius:50%;background:var(--b2);flex-shrink:0;transition:all .3s}
-.ls-dot.active{background:var(--blue)}.ls-dot.done{background:var(--green)}
+.load-title{font-family:var(--serif);font-size:1.1rem;font-style:italic;font-weight:400;color:var(--t1);margin-bottom:4px}
+.load-sub{font-size:.75rem;color:var(--t3);margin-bottom:20px}
+.load-steps{display:flex;flex-direction:column;gap:8px;text-align:left}
+.ls{display:flex;align-items:center;gap:9px;font-size:.73rem;color:var(--t3);transition:color .3s}
+.ls-dot{width:7px;height:7px;border-radius:50%;background:var(--b2);flex-shrink:0;transition:all .3s}
+.ls-dot.active{background:var(--teal);box-shadow:0 0 8px rgba(11,110,95,0.4)}
+.ls-dot.done{background:var(--green)}
 .ls.active{color:var(--t2)}.ls.done{color:var(--green)}
-.prog{height:2px;background:var(--b1);border-radius:1px;overflow:hidden;margin-top:16px}
-.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:1px;transition:width .5s ease;width:0}
-.provider-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;border:1px solid rgba(166,127,255,0.2);background:rgba(166,127,255,0.07);font-family:var(--mono);font-size:.58rem;color:var(--purple);margin-bottom:14px}
+.prog{height:2px;background:var(--b1);border-radius:1px;overflow:hidden;margin-top:18px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--blue));border-radius:1px;transition:width .5s ease;width:0}
+.provider-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;border:1px solid rgba(11,110,95,0.15);background:rgba(11,110,95,0.07);font-family:var(--mono);font-size:.6rem;color:var(--teal);margin-bottom:16px}
 
-.error-card{background:var(--s1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;padding:32px;max-width:420px;text-align:center}
-.error-icon{font-size:1.8rem;margin-bottom:10px;opacity:.5}
-.error-title{font-size:.88rem;font-weight:500;color:var(--red);margin-bottom:8px}
-.error-sub{font-size:.75rem;color:var(--t2);line-height:1.6;margin-bottom:18px}
-.btn-retry{padding:9px 20px;border-radius:7px;border:none;background:#0B6E5F;color:#fff;font-family:var(--sans);font-size:.78rem;cursor:pointer}
+/* ── ERROR ── */
+.error-card{background:var(--s1);border:1px solid rgba(220,38,38,0.15);border-radius:14px;padding:36px;max-width:440px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.04)}
+.error-icon{font-size:2rem;margin-bottom:12px;opacity:.4}
+.error-title{font-family:var(--serif);font-size:1.1rem;font-style:italic;color:var(--red);margin-bottom:8px}
+.error-sub{font-size:.75rem;color:var(--t2);line-height:1.65;margin-bottom:20px}
+.btn-retry{padding:10px 22px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-family:var(--sans);font-size:.8rem;font-weight:500;cursor:pointer;transition:opacity .2s}
+.btn-retry:hover{opacity:.85}
 
-.report-wrap{min-height:calc(100vh - 54px)}
+/* ── REPORT FRAME ── */
+.report-wrap{min-height:calc(100vh - 64px)}
 iframe.rif{width:100%;border:none;display:block}
 </style>
 </head>
@@ -49,14 +58,15 @@ iframe.rif{width:100%;border:none;display:block}
     <span style="font-weight:700;font-size:.9rem;color:#1A1A1A">MedFlow AI</span>
   </a>
   <div style="display:flex;gap:2px">
-    <a href="index.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#1A1A1A;background:rgba(11,110,95,0.05)">Overview</a>
+    <a href="index.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Overview</a>
     <a href="submit.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Submit</a>
-    <a href="dashboard.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Dashboard</a>
+    <a href="dashboard.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#1A1A1A;background:rgba(11,110,95,0.05)">Dashboard</a>
     <a href="imaging.html" style="padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:500;color:#8A8A8A">Imaging</a>
   </div>
-  <div style="display:flex;align-items:center;gap:12px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="printBtn" onclick="doPrint()" style="display:none;align-items:center;gap:6px;padding:7px 16px;border-radius:8px;border:1px solid rgba(11,110,95,0.2);background:rgba(11,110,95,0.07);color:#0B6E5F;font-family:'IBM Plex Mono',monospace;font-size:.62rem;cursor:pointer;transition:all .2s">🖨 Print</button>
     <div style="display:flex;align-items:center;gap:6px"><div id="dot" style="width:6px;height:6px;border-radius:50%;background:#059669"></div><span id="apiTxt" style="font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:#8A8A8A">Connecting...</span></div>
-    <a href="submit.html" style="padding:8px 18px;border-radius:8px;background:#0B6E5F;color:#fff;font-size:.78rem;font-weight:600;text-decoration:none">+ New Claim</a>
+    <a href="dashboard.html" style="padding:8px 18px;border-radius:8px;background:#0B6E5F;color:#fff;font-size:.78rem;font-weight:600;text-decoration:none">← Dashboard</a>
   </div>
 </nav>
 
@@ -108,7 +118,7 @@ function showReport(html){
   const iframe=document.getElementById('rif');
   iframe.onload=()=>{
     try{const h=iframe.contentDocument.body.scrollHeight;iframe.style.height=Math.max(h,window.innerHeight-54)+'px';}catch(e){iframe.style.height='90vh';}
-    document.getElementById('printBtn').classList.add('show');
+    const pb=document.getElementById('printBtn');if(pb)pb.style.display='flex';
   };
   const blob=new Blob([html],{type:'text/html'});
   iframe.src=URL.createObjectURL(blob);
