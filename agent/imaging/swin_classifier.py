@@ -12,10 +12,11 @@ Usage:
 
 import asyncio
 import base64
+import io
 import json
 import logging
 import os
-import uuid
+import tempfile
 from typing import Optional
 
 import httpx
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 HF_SPACE_URL = os.environ.get(
     "HF_SPACE_URL",
     "https://raven004-brain-mri-classifier.hf.space",
-).rstrip("/")
+)
 
 CLASS_LABELS = {
     0: "Mild Dementia",
@@ -73,159 +74,73 @@ async def classify_mri_image(
         return _fallback_result(str(e))
 
 
-def _make_data_url(image_bytes: bytes, filename: str) -> tuple[str, str]:
-    """Returns (data_url, mime_type)."""
-    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
-    mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
-            "png": "image/png", "gif": "image/gif"}.get(ext, "image/jpeg")
-    b64 = base64.b64encode(image_bytes).decode()
-    return f"data:{mime};base64,{b64}", mime
-
-
-def _extract_result(raw) -> Optional[dict]:
-    """Parse raw response value into a result dict if it contains predicted_class."""
-    if not raw:
-        return None
-    result = json.loads(raw) if isinstance(raw, str) else raw
-    if isinstance(result, dict) and "predicted_class" in result:
-        return result
-    return None
-
-
 async def _call_gradio_api(image_bytes: bytes, filename: str) -> dict:
     """
-    Calls the HuggingFace Space Gradio API.
-    Tries multiple endpoint formats for compatibility with Gradio 4.x and 5.x/6.x.
-
-    TIP: Check what endpoints are available at:
-        {HF_SPACE_URL}/?view=api
-    and update fn_index / endpoint name if needed.
+    Calls the HuggingFace Space Gradio 6.x API.
+    The Space app.py defines: predict(image: Image.Image) -> str
+    Gradio 6 /run/predict expects {"data": [<base64_data_url>]} for Image inputs.
     """
-    data_url, mime = _make_data_url(image_bytes, filename)
-    session_hash = uuid.uuid4().hex  # required by Gradio 4+ for routing
+    ext  = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
+    mime = {"jpg":"image/jpeg","jpeg":"image/jpeg",
+            "png":"image/png","gif":"image/gif"}.get(ext,"image/jpeg")
+    b64      = base64.b64encode(image_bytes).decode()
+    data_url = f"data:{mime};base64,{b64}"
+
+    url = f"{HF_SPACE_URL}/run/predict"
+    logger.info(f"Calling HF Space: {url}")
 
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
 
-        # ── Attempt 1: Gradio 5/6 /run/predict with session_hash ──────────────
-        # fn_index=0 targets the first registered event. Check /?view=api to confirm.
-        try:
-            url = f"{HF_SPACE_URL}/run/predict"
-            payload = {"data": [data_url], "fn_index": 0, "session_hash": session_hash}
-            logger.info(f"Attempt 1 (fn_index=0 + session_hash): POST {url}")
-            resp = await client.post(url, json=payload)
-            logger.debug(f"Attempt 1 status: {resp.status_code}")
-            if resp.status_code == 200:
-                result = _extract_result(resp.json().get("data", [None])[0])
-                if result:
-                    return result
-        except Exception as e:
-            logger.debug(f"Attempt 1 failed: {e}")
+        # Gradio 6 with Image(type="pil") input accepts plain base64 data URL
+        payload = {"data": [data_url]}
+        resp    = await client.post(url, json=payload,
+                                    headers={"Content-Type": "application/json"})
 
-        # ── Attempt 2: Gradio 6 /call/ SSE API ────────────────────────────────
-        # This is the preferred format for Gradio >=4.0 Spaces.
-        # Endpoint name must match what the Space exposes — check /?view=api.
-        try:
-            url = f"{HF_SPACE_URL}/call/predict"
-            payload = {"data": [data_url], "session_hash": session_hash}
-            logger.info(f"Attempt 2 (Gradio /call/ SSE): POST {url}")
-            resp = await client.post(url, json=payload)
-            logger.debug(f"Attempt 2 status: {resp.status_code}")
-            if resp.status_code == 200:
-                event_id = resp.json().get("event_id")
+        if resp.status_code == 404:
+            # Try with fn_index explicitly
+            payload = {"data": [data_url], "fn_index": 0}
+            resp    = await client.post(url, json=payload,
+                                        headers={"Content-Type": "application/json"})
+
+        if resp.status_code == 405:
+            # Gradio 6 /call/ streaming API
+            call_url  = f"{HF_SPACE_URL}/call/predict"
+            call_resp = await client.post(call_url, json={"data": [data_url]},
+                                          headers={"Content-Type": "application/json"})
+            if call_resp.status_code == 200:
+                event_id = call_resp.json().get("event_id")
                 if event_id:
-                    result = await _poll_sse(client, event_id)
-                    if result:
-                        return result
-        except Exception as e:
-            logger.debug(f"Attempt 2 failed: {e}")
+                    for _ in range(40):
+                        await asyncio.sleep(0.5)
+                        poll = await client.get(f"{HF_SPACE_URL}/call/predict/{event_id}")
+                        if poll.status_code == 200 and "data:" in poll.text:
+                            for line in poll.text.splitlines():
+                                if line.startswith("data:"):
+                                    raw = json.loads(line[5:].strip())
+                                    if isinstance(raw, list) and raw:
+                                        result = json.loads(raw[0]) if isinstance(raw[0], str) else raw[0]
+                                        if "predicted_class" in result:
+                                            return result
+            raise ValueError(f"Gradio /call/ API failed: {call_resp.status_code}")
 
-        # ── Attempt 3: Gradio FileData wrapper ────────────────────────────────
-        try:
-            url = f"{HF_SPACE_URL}/run/predict"
-            payload = {
-                "data": [{"path": data_url, "meta": {"_type": "gradio.FileData"}}],
-                "fn_index": 0,
-                "session_hash": session_hash,
-            }
-            logger.info(f"Attempt 3 (FileData): POST {url}")
-            resp = await client.post(url, json=payload)
-            logger.debug(f"Attempt 3 status: {resp.status_code}")
-            if resp.status_code == 200:
-                result = _extract_result(resp.json().get("data", [None])[0])
-                if result:
-                    return result
-        except Exception as e:
-            logger.debug(f"Attempt 3 failed: {e}")
+        resp.raise_for_status()
+        body = resp.json()
 
-        # ── Attempt 4: Upload file then predict ───────────────────────────────
-        try:
-            upload_url = f"{HF_SPACE_URL}/upload"
-            files = {"files": (filename, image_bytes, mime)}
-            logger.info(f"Attempt 4 (upload+predict): POST {upload_url}")
-            upload_resp = await client.post(upload_url, files=files)
-            if upload_resp.status_code == 200:
-                file_paths = upload_resp.json()
-                file_path = file_paths[0] if isinstance(file_paths, list) else file_paths
-                payload = {
-                    "data": [{"path": file_path, "orig_name": filename, "meta": {"_type": "gradio.FileData"}}],
-                    "fn_index": 0,
-                    "session_hash": session_hash,
-                }
-                resp = await client.post(f"{HF_SPACE_URL}/run/predict", json=payload)
-                logger.debug(f"Attempt 4 predict status: {resp.status_code}")
-                if resp.status_code == 200:
-                    result = _extract_result(resp.json().get("data", [None])[0])
-                    if result:
-                        return result
-        except Exception as e:
-            logger.debug(f"Attempt 4 failed: {e}")
+    # Parse response — Gradio wraps in {"data": ["json_string"]}
+    raw = body.get("data", [None])[0]
+    if raw is None:
+        raise ValueError(f"Empty Gradio response: {body}")
 
-    raise ValueError(
-        f"All Gradio API formats failed for {HF_SPACE_URL}. "
-        f"Check {HF_SPACE_URL}/?view=api for the correct endpoint name and fn_index."
-    )
+    result = json.loads(raw) if isinstance(raw, str) else raw
 
+    if not isinstance(result, dict) or "predicted_class" not in result:
+        raise ValueError(f"Unexpected result format: {str(result)[:200]}")
 
-async def _poll_sse(client: httpx.AsyncClient, event_id: str, max_polls: int = 40) -> Optional[dict]:
-    """
-    Poll the Gradio SSE stream until a 'complete' event is received.
+    if "error" in result:
+        raise ValueError(result["error"])
 
-    SSE lines look like:
-        event: complete
-        data: [<json>]
-    We wait for 'event: complete' before reading the data line.
-    """
-    result_url = f"{HF_SPACE_URL}/call/predict/{event_id}"
-    found_complete = False
-
-    for attempt in range(max_polls):
-        await asyncio.sleep(0.5)
-        try:
-            poll = await client.get(result_url)
-            if poll.status_code != 200:
-                continue
-
-            lines = poll.text.splitlines()
-            for i, line in enumerate(lines):
-                if line.strip() == "event: complete":
-                    found_complete = True
-                elif line.strip() == "event: error":
-                    logger.warning("SSE stream returned error event")
-                    return None
-                elif found_complete and line.startswith("data:"):
-                    data_str = line[5:].strip()
-                    try:
-                        parsed = json.loads(data_str)
-                        raw = parsed[0] if isinstance(parsed, list) and parsed else parsed
-                        return _extract_result(raw)
-                    except json.JSONDecodeError:
-                        logger.debug(f"SSE data parse failed: {data_str!r}")
-                        return None
-        except Exception as e:
-            logger.debug(f"SSE poll attempt {attempt} failed: {e}")
-
-    logger.warning(f"SSE polling timed out after {max_polls} attempts")
-    return None
+    logger.info(f"HF Space result: {result.get('predicted_class')} ({result.get('confidence',0):.1%})")
+    return result
 
 
 def _fallback_result(error_msg: str) -> dict:
@@ -254,21 +169,3 @@ def get_space_status() -> dict:
         return {"status": "degraded", "code": resp.status_code}
     except Exception as e:
         return {"status": "offline", "error": str(e)}
-
-
-def get_space_api_info() -> dict:
-    """
-    Fetches the Space's API info to discover available endpoints and fn_index values.
-    Call this during debugging to confirm endpoint names.
-
-    Returns the parsed JSON from /?view=api or /info endpoint.
-    """
-    import httpx as _httpx
-    for path in ["/info", "/api/predict", "/?view=api"]:
-        try:
-            resp = _httpx.get(f"{HF_SPACE_URL}{path}", timeout=12.0)
-            if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("application/json"):
-                return resp.json()
-        except Exception:
-            pass
-    return {"error": "Could not retrieve API info — visit the Space URL manually"}
