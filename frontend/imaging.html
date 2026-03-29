@@ -155,17 +155,14 @@ input[type=range]{width:100%;accent-color:var(--purple)}
             <div><label>Classification</label>
               <select id="preClass">
                 <option value="">Select...</option>
-                <option value="glioma_stage_1">Glioma Stage 1 (WHO I)</option>
-                <option value="glioma_stage_2">Glioma Stage 2 (WHO II)</option>
-                <option value="glioma_stage_3">Glioma Stage 3 (WHO III)</option>
-                <option value="glioma_stage_4">Glioblastoma (WHO IV)</option>
-                <option value="meningioma">Meningioma</option>
-                <option value="pituitary_tumor">Pituitary Tumor</option>
-                <option value="mild_cognitive_impairment">MCI</option>
-                <option value="alzheimer_early">Alzheimer — Early</option>
-                <option value="alzheimer_moderate">Alzheimer — Moderate</option>
-                <option value="alzheimer_severe">Alzheimer — Severe</option>
-                <option value="no_tumor">No Tumor / Normal</option>
+                <option value="Mild Dementia">Mild Dementia</option>
+                <option value="Moderate Dementia">Moderate Dementia</option>
+                <option value="Very Mild Dementia">Very Mild Dementia</option>
+                <option value="Non Demented">Non Demented</option>
+                <option value="Glioma">Glioma</option>
+                <option value="Meningioma">Meningioma</option>
+                <option value="Pituitary">Pituitary Tumor</option>
+                <option value="Healthy">Healthy</option>
               </select>
             </div>
             <div><label>Confidence <span id="confVal" style="color:var(--purple)">92%</span></label>
@@ -174,14 +171,14 @@ input[type=range]{width:100%;accent-color:var(--purple)}
           </div>
           <div style="font-family:var(--mono);font-size:.54rem;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">8 Output Classes</div>
           <div class="cls-grid" id="clsGrid">
-            <div class="cls-chip">Glioma Stage 1</div>
-            <div class="cls-chip">Glioma Stage 2</div>
-            <div class="cls-chip">Glioma Stage 3</div>
-            <div class="cls-chip">Glioblastoma</div>
+            <div class="cls-chip">Mild Dementia</div>
+            <div class="cls-chip">Moderate Dementia</div>
+            <div class="cls-chip">Very Mild Dementia</div>
+            <div class="cls-chip">Non Demented</div>
+            <div class="cls-chip">Glioma</div>
             <div class="cls-chip">Meningioma</div>
-            <div class="cls-chip">Pituitary Tumor</div>
-            <div class="cls-chip">MCI</div>
-            <div class="cls-chip">Alzheimer</div>
+            <div class="cls-chip">Pituitary</div>
+            <div class="cls-chip">Healthy</div>
           </div>
           <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">Classify Scan →</button>
         </div>
@@ -221,17 +218,14 @@ const recent=JSON.parse(localStorage.getItem('medflow_imaging')||'[]');
 function toast(m,t='ok'){const e=document.getElementById('toast');e.textContent=m;e.className=`toast ${t} show`;setTimeout(()=>e.classList.remove('show'),3000)}
 
 const CLASS_MAP={
-  glioma_stage_1:{label:'Glioma Stage 1',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff6b6b',cat:'tumor'},
-  glioma_stage_2:{label:'Glioma Stage 2',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff6b6b',cat:'tumor'},
-  glioma_stage_3:{label:'Glioma Stage 3',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff6b6b',cat:'tumor'},
-  glioma_stage_4:{label:'Glioblastoma IV',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff4444',cat:'tumor'},
-  meningioma:{label:'Meningioma',icd:'D32.9',desc:'Benign neoplasm of meninges',col:'#f5a623',cat:'tumor'},
-  pituitary_tumor:{label:'Pituitary Tumor',icd:'D35.2',desc:'Benign neoplasm of pituitary',col:'#a67fff',cat:'tumor'},
-  mild_cognitive_impairment:{label:'MCI',icd:'G31.84',desc:'Mild cognitive impairment',col:'#6b8fff',cat:'alzheimer'},
-  alzheimer_early:{label:'Alzheimer — Early',icd:'G30.0',desc:'Alzheimer early onset',col:'#6b8fff',cat:'alzheimer'},
-  alzheimer_moderate:{label:'Alzheimer — Moderate',icd:'G30.9',desc:'Alzheimer disease',col:'#5588ff',cat:'alzheimer'},
-  alzheimer_severe:{label:'Alzheimer — Severe',icd:'G30.9',desc:'Alzheimer disease',col:'#4466ff',cat:'alzheimer'},
-  no_tumor:{label:'No Tumor / Normal',icd:'Z03.89',desc:'No abnormality',col:'#34d97b',cat:'normal'},
+  'Mild Dementia':     {label:'Mild Dementia',     icd:'G30.9', desc:"Alzheimer's disease, unspecified",          col:'#6b8fff',cat:'alzheimer'},
+  'Moderate Dementia': {label:'Moderate Dementia', icd:'G30.9', desc:"Alzheimer's disease, unspecified",          col:'#5570ff',cat:'alzheimer'},
+  'Non Demented':      {label:'Non Demented',      icd:'Z03.89',desc:'No abnormality detected',                   col:'#059669',cat:'normal'},
+  'Very Mild Dementia':{label:'Very Mild Dementia',icd:'G30.0', desc:"Alzheimer's disease with early onset",      col:'#7c9fff',cat:'alzheimer'},
+  'Glioma':            {label:'Glioma',             icd:'C71.9', desc:'Malignant neoplasm of brain, unspecified', col:'#dc2626',cat:'tumor'},
+  'Healthy':           {label:'Healthy',            icd:'Z03.89',desc:'No abnormality detected',                  col:'#059669',cat:'normal'},
+  'Meningioma':        {label:'Meningioma',         icd:'D32.9', desc:'Benign neoplasm of meninges, unspecified', col:'#b45309',cat:'tumor'},
+  'Pituitary':         {label:'Pituitary Tumor',    icd:'D35.2', desc:'Benign neoplasm of pituitary gland',       col:'#7c3aed',cat:'tumor'},
 };
 
 function handleDrag(e){e.preventDefault();document.getElementById('dropZone').classList.add('over')}
@@ -355,7 +349,7 @@ function showResult(r){
     </div>`;
 
   document.querySelectorAll('.cls-chip').forEach((el,i)=>{
-    const labels=['glioma_stage_1','glioma_stage_2','glioma_stage_3','glioma_stage_4','meningioma','pituitary_tumor','mild_cognitive_impairment','alzheimer_early'];
+    const labels=['Mild Dementia','Moderate Dementia','Very Mild Dementia','Non Demented','Glioma','Meningioma','Pituitary','Healthy'];
     el.classList.toggle('active',labels[i]===r.predicted);
   });
 

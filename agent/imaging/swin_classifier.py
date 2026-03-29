@@ -1,9 +1,14 @@
 """
-swin_classifier.py — Client for the Hugging Face Space inference API.
+swin_classifier.py — Client for the Swin Transformer inference API.
 
-Calls Raven004/brain-mri-classifier Space to run Swin Transformer inference
-on brain MRI images. Falls back gracefully if the Space is unavailable
-(cold start, quota exceeded, etc.)
+Priority order:
+  1. LOCAL_MODEL_URL  — your local ngrok tunnel (development)
+  2. HF_SPACE_URL     — HuggingFace Space (production)
+  3. fallback result  — if both unavailable
+
+Set env vars:
+  HF_SPACE_URL=https://raven004-brain-mri-classifier.hf.space   (default)
+  LOCAL_MODEL_URL=https://abc123.ngrok-free.app                  (optional, overrides HF)
 
 Usage:
     from agent.imaging.swin_classifier import classify_mri_image
@@ -12,21 +17,25 @@ Usage:
 
 import asyncio
 import base64
-import io
 import json
 import logging
 import os
-import tempfile
-from typing import Optional
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
-HF_SPACE_URL = os.environ.get(
+# ── URL priority: local ngrok > HF Space ──────────────────────────────────
+LOCAL_MODEL_URL = os.environ.get("LOCAL_MODEL_URL", "").strip()
+HF_SPACE_URL    = os.environ.get(
     "HF_SPACE_URL",
     "https://raven004-brain-mri-classifier.hf.space",
-)
+).strip()
+
+# Use local if set, otherwise HF Space
+ACTIVE_URL = LOCAL_MODEL_URL if LOCAL_MODEL_URL else HF_SPACE_URL
+
+TIMEOUT = httpx.Timeout(120.0, connect=15.0)
 
 CLASS_LABELS = {
     0: "Mild Dementia",
@@ -39,18 +48,36 @@ CLASS_LABELS = {
     7: "Pituitary",
 }
 
-ICD10_MAP = {
-    "Mild Dementia":       {"code": "G30.9",  "desc": "Alzheimer's disease, unspecified"},
-    "Moderate Dementia":   {"code": "G30.9",  "desc": "Alzheimer's disease, unspecified"},
-    "Non Demented":        {"code": "Z03.89", "desc": "No abnormality detected"},
-    "Very Mild Dementia":  {"code": "G30.0",  "desc": "Alzheimer's disease with early onset"},
-    "Glioma":              {"code": "C71.9",  "desc": "Malignant neoplasm of brain, unspecified"},
-    "Healthy":             {"code": "Z03.89", "desc": "No abnormality detected"},
-    "Meningioma":          {"code": "D32.9",  "desc": "Benign neoplasm of meninges, unspecified"},
-    "Pituitary":           {"code": "D35.2",  "desc": "Benign neoplasm of pituitary gland"},
+# Normalised lookup — maps any model output casing → canonical label
+CLASS_LABEL_NORM = {
+    "mild dementia":      "Mild Dementia",
+    "moderate dementia":  "Moderate Dementia",
+    "non demented":       "Non Demented",
+    "very mild dementia": "Very Mild Dementia",
+    "very_mild_dementia": "Very Mild Dementia",
+    "glioma":             "Glioma",
+    "healthy":            "Healthy",
+    "meningioma":         "Meningioma",
+    "pituitary":          "Pituitary",
+    "pituitary tumor":    "Pituitary",
+    "pituitary_tumor":    "Pituitary",
+    "no tumor":           "Healthy",
+    "no_tumor":           "Healthy",
+    "non_demented":       "Non Demented",
+    "mild_dementia":      "Mild Dementia",
+    "moderate_dementia":  "Moderate Dementia",
 }
 
-TIMEOUT = httpx.Timeout(120.0, connect=15.0)  # HF Spaces cold start can be 90s+
+ICD10_MAP = {
+    "Mild Dementia":      {"code": "G30.9",  "desc": "Alzheimer's disease, unspecified"},
+    "Moderate Dementia":  {"code": "G30.9",  "desc": "Alzheimer's disease, unspecified"},
+    "Non Demented":       {"code": "Z03.89", "desc": "No abnormality detected"},
+    "Very Mild Dementia": {"code": "G30.0",  "desc": "Alzheimer's disease with early onset"},
+    "Glioma":             {"code": "C71.9",  "desc": "Malignant neoplasm of brain, unspecified"},
+    "Healthy":            {"code": "Z03.89", "desc": "No abnormality detected"},
+    "Meningioma":         {"code": "D32.9",  "desc": "Benign neoplasm of meninges, unspecified"},
+    "Pituitary":          {"code": "D35.2",  "desc": "Benign neoplasm of pituitary gland"},
+}
 
 
 async def classify_mri_image(
@@ -58,61 +85,78 @@ async def classify_mri_image(
     filename: str = "scan.jpg",
 ) -> dict:
     """
-    Send an MRI image to the HF Space and return structured classification result.
-
-    Returns dict with keys:
-        predicted_class, class_index, confidence, category,
-        icd10_code, icd10_description, all_probabilities,
-        source (hf_space | fallback), error (optional)
+    Classify a brain MRI image.
+    Tries LOCAL_MODEL_URL first (if set), then HF_SPACE_URL, then returns fallback.
     """
+    source_label = "local" if LOCAL_MODEL_URL else "hf_space"
+
+    # ── Try primary URL ───────────────────────────────────────────────────
     try:
-        result = await _call_gradio_api(image_bytes, filename)
-        result["source"] = "hf_space"
+        logger.info(f"Calling model at: {ACTIVE_URL} (source={source_label})")
+        result = await _call_gradio_api(image_bytes, filename, ACTIVE_URL)
+        result["source"] = source_label
         return result
     except Exception as e:
-        logger.warning(f"HF Space call failed: {e} — returning fallback")
-        return _fallback_result(str(e))
+        logger.warning(f"Primary model call failed ({ACTIVE_URL}): {e}")
+
+    # ── If local failed, try HF Space as fallback ─────────────────────────
+    if LOCAL_MODEL_URL and HF_SPACE_URL:
+        try:
+            logger.info(f"Falling back to HF Space: {HF_SPACE_URL}")
+            result = await _call_gradio_api(image_bytes, filename, HF_SPACE_URL)
+            result["source"] = "hf_space_fallback"
+            return result
+        except Exception as e2:
+            logger.warning(f"HF Space fallback also failed: {e2}")
+
+    # ── Both failed ───────────────────────────────────────────────────────
+    return _fallback_result("Model unavailable — both local and HF Space unreachable")
 
 
-async def _call_gradio_api(image_bytes: bytes, filename: str) -> dict:
+async def _call_gradio_api(image_bytes: bytes, filename: str, base_url: str) -> dict:
     """
-    Calls the HuggingFace Space Gradio 6.x API.
-    The Space app.py defines: predict(image: Image.Image) -> str
-    Gradio 6 /run/predict expects {"data": [<base64_data_url>]} for Image inputs.
+    Call a Gradio app's /run/predict endpoint with a base64 image.
+    Handles Gradio 3.x, 4.x, and 6.x API formats.
     """
-    ext  = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
-    mime = {"jpg":"image/jpeg","jpeg":"image/jpeg",
-            "png":"image/png","gif":"image/gif"}.get(ext,"image/jpeg")
+    ext      = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
+    mime     = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
+                "png": "image/png", "gif": "image/gif"}.get(ext, "image/jpeg")
     b64      = base64.b64encode(image_bytes).decode()
     data_url = f"data:{mime};base64,{b64}"
 
-    url = f"{HF_SPACE_URL}/run/predict"
-    logger.info(f"Calling HF Space: {url}")
+    url = f"{base_url}/run/predict"
 
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
 
-        # Gradio 6 with Image(type="pil") input accepts plain base64 data URL
-        payload = {"data": [data_url]}
-        resp    = await client.post(url, json=payload,
-                                    headers={"Content-Type": "application/json"})
+        # ── Try /run/predict (Gradio 3/4/6 default) ───────────────────────
+        resp = await client.post(
+            url,
+            json={"data": [data_url]},
+            headers={"Content-Type": "application/json"},
+        )
 
         if resp.status_code == 404:
-            # Try with fn_index explicitly
-            payload = {"data": [data_url], "fn_index": 0}
-            resp    = await client.post(url, json=payload,
-                                        headers={"Content-Type": "application/json"})
+            # Try with explicit fn_index
+            resp = await client.post(
+                url,
+                json={"data": [data_url], "fn_index": 0},
+                headers={"Content-Type": "application/json"},
+            )
 
+        # ── Gradio 6 streaming /call/ API ─────────────────────────────────
         if resp.status_code == 405:
-            # Gradio 6 /call/ streaming API
-            call_url  = f"{HF_SPACE_URL}/call/predict"
-            call_resp = await client.post(call_url, json={"data": [data_url]},
-                                          headers={"Content-Type": "application/json"})
+            call_url  = f"{base_url}/call/predict"
+            call_resp = await client.post(
+                call_url,
+                json={"data": [data_url]},
+                headers={"Content-Type": "application/json"},
+            )
             if call_resp.status_code == 200:
                 event_id = call_resp.json().get("event_id")
                 if event_id:
                     for _ in range(40):
                         await asyncio.sleep(0.5)
-                        poll = await client.get(f"{HF_SPACE_URL}/call/predict/{event_id}")
+                        poll = await client.get(f"{base_url}/call/predict/{event_id}")
                         if poll.status_code == 200 and "data:" in poll.text:
                             for line in poll.text.splitlines():
                                 if line.startswith("data:"):
@@ -126,7 +170,7 @@ async def _call_gradio_api(image_bytes: bytes, filename: str) -> dict:
         resp.raise_for_status()
         body = resp.json()
 
-    # Parse response — Gradio wraps in {"data": ["json_string"]}
+    # ── Parse response ────────────────────────────────────────────────────
     raw = body.get("data", [None])[0]
     if raw is None:
         raise ValueError(f"Empty Gradio response: {body}")
@@ -139,12 +183,27 @@ async def _call_gradio_api(image_bytes: bytes, filename: str) -> dict:
     if "error" in result:
         raise ValueError(result["error"])
 
-    logger.info(f"HF Space result: {result.get('predicted_class')} ({result.get('confidence',0):.1%})")
+    # Normalise predicted_class casing to match CLASS_LABEL_NORM
+    raw_label = result.get("predicted_class", "")
+    canonical = CLASS_LABEL_NORM.get(raw_label.lower().strip(), raw_label)
+    result["predicted_class"] = canonical
+
+    # Also normalise all_probabilities keys if present
+    if "all_probabilities" in result and isinstance(result["all_probabilities"], dict):
+        result["all_probabilities"] = {
+            CLASS_LABEL_NORM.get(k.lower().strip(), k): v
+            for k, v in result["all_probabilities"].items()
+        }
+
+    logger.info(
+        f"Model result: {result.get('predicted_class')} "
+        f"({result.get('confidence', 0):.1%}) from {base_url}"
+    )
     return result
 
 
 def _fallback_result(error_msg: str) -> dict:
-    """Returns a structured fallback when the Space is unavailable."""
+    """Structured fallback when no model is reachable."""
     return {
         "predicted_class":   "Unknown",
         "class_index":       -1,
@@ -160,12 +219,14 @@ def _fallback_result(error_msg: str) -> dict:
 
 
 def get_space_status() -> dict:
-    """Synchronous health check for the HF Space (used in /health endpoint)."""
+    """Synchronous health check — used in /health endpoint."""
     import httpx as _httpx
+    url = ACTIVE_URL
     try:
-        resp = _httpx.get(f"{HF_SPACE_URL}/", timeout=12.0)
+        resp = _httpx.get(f"{url}/", timeout=12.0)
+        source = "local" if LOCAL_MODEL_URL else "hf_space"
         if resp.status_code == 200:
-            return {"status": "online", "url": HF_SPACE_URL}
-        return {"status": "degraded", "code": resp.status_code}
+            return {"status": "online", "url": url, "source": source}
+        return {"status": "degraded", "code": resp.status_code, "url": url}
     except Exception as e:
-        return {"status": "offline", "error": str(e)}
+        return {"status": "offline", "error": str(e), "url": url}
