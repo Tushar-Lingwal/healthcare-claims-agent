@@ -509,12 +509,18 @@ async def imaging_classify(request: Request):
 
 @app.get(
     "/imaging/status",
-    summary="Check Hugging Face Space availability",
+    summary="Check imaging model availability",
     tags=["Imaging"],
 )
 async def imaging_status():
-    """Returns the current status of the HF Space inference endpoint."""
-    return get_space_status()
+    """Returns the current status of the imaging inference endpoint."""
+    import os
+    status = get_space_status()
+    # Add debug info to help diagnose env var issues
+    raw_val = os.environ.get("LOCAL_MODEL_URL", "NOT_SET")
+    status["debug_env"] = repr(raw_val)
+    status["debug_len"] = len(raw_val)
+    return status
 
 
 @app.post(
