@@ -104,7 +104,7 @@ def _build_report_prompt(data: dict) -> str:
     reasons     = data.get("reasons", [])
     notes       = data.get("_notes", "")
     plan        = data.get("_plan", "unknown")
-    moe         = data.get("moe_analysis") or {}
+    moe         = data.get("moe_analysis") or data.get("moe") or {}
     img_result  = data.get("imaging_result") or data.get("_imaging") or {}
 
     # ── Format all data sections ──────────────────────────────────────────
@@ -178,7 +178,7 @@ def _build_report_prompt(data: dict) -> str:
 
     # ── MoE Analysis ──────────────────────────────────────────────────────
     moe_str = ""
-    if moe and not moe.get("skipped"):
+    if moe and not moe.get("skipped") and (moe.get("activated_experts") or moe.get("findings")):
         moe_str = f"""
 MOE SYSTEM SUMMARY:
   Activated experts: {', '.join(moe.get('activated_experts', []))}
@@ -982,14 +982,14 @@ def build_full_report_html(data: dict, narrative: str, generated_at: datetime) -
     cpt      = data.get("cpt_codes", [])
     rules    = data.get("rule_evaluations", [])
     edges    = data.get("edge_cases", [])
-    moe      = data.get("moe_analysis") or {}
+    moe      = data.get("moe_analysis") or data.get("moe") or {}
     notes    = data.get("_notes", "")
     passages = data.get("rag_passages", [])
 
     if dec == "approved":
-        dec_col="#34d97b"; dec_bg="rgba(52,217,123,0.08)"; dec_border="rgba(52,217,123,0.25)"; dec_label="APPROVED"
+        dec_col="#059669"; dec_bg="rgba(5,150,105,0.08)"; dec_border="rgba(5,150,105,0.25)"; dec_label="APPROVED"
     elif dec == "rejected":
-        dec_col="#ff6b6b"; dec_bg="rgba(255,107,107,0.08)"; dec_border="rgba(255,107,107,0.25)"; dec_label="REJECTED"
+        dec_col="#dc2626"; dec_bg="rgba(220,38,38,0.08)"; dec_border="rgba(220,38,38,0.25)"; dec_label="REJECTED"
     else:
         dec_col="#f5a623"; dec_bg="rgba(245,166,35,0.08)"; dec_border="rgba(245,166,35,0.25)"; dec_label="NEEDS REVIEW"
 
@@ -1031,7 +1031,7 @@ def build_full_report_html(data: dict, narrative: str, generated_at: datetime) -
 
     # MoE summary
     moe_section = ""
-    if moe and not moe.get("skipped"):
+    if moe and not moe.get("skipped") and (moe.get("activated_experts") or moe.get("findings")):
         experts_html = ""
         for f in (moe.get("findings") or []):
             risk = f.get("risk_level","low")
@@ -1072,7 +1072,7 @@ def build_full_report_html(data: dict, narrative: str, generated_at: datetime) -
               <div class="moe-consensus">Consensus Risk: <span style="color:{dec_col}">{moe.get("consensus_risk","").upper()}</span></div>
               <div class="moe-experts-list">Activated: {", ".join(moe.get("activated_experts",[]))}</div>
             </div>
-            <div class="moe-conf-avg">{moe.get("moe_confidence",0):.0%}<div style="font-size:.6rem;color:rgba(255,255,255,.4);margin-top:2px">avg conf</div></div>
+            <div class="moe-conf-avg">{moe.get("moe_confidence",0):.0%}<div style="font-size:.6rem;color:var(--t3);margin-top:2px">avg conf</div></div>
           </div>
           {experts_html}
           {sug_codes}
@@ -1098,26 +1098,26 @@ def build_full_report_html(data: dict, narrative: str, generated_at: datetime) -
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Clinical Adjudication Report — {claim_id}</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
-:root{{--bg:#09090f;--s1:#111118;--s2:#18181f;--s3:#202028;--b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.10);--t1:#e8e8f0;--t2:#8888a8;--t3:#44445a;--blue:#6b8fff;--purple:#a67fff;--green:#34d97b;--red:#ff6b6b;--amber:#f5a623;--serif:'Cormorant Garamond',Georgia,serif;--mono:'DM Mono',monospace;--sans:'DM Sans',system-ui,sans-serif}}
+:root{{--bg:#FAFBFD;--s1:#FFFFFF;--s2:#F8F9FB;--s3:#F0EEEA;--s4:#E8E6E1;--b1:rgba(0,0,0,0.05);--b2:rgba(0,0,0,0.08);--b3:rgba(0,0,0,0.12);--t1:#1A1A1A;--t2:#5A5A5A;--t3:#8A8A8A;--t4:#B0B0B0;--blue:#2563EB;--purple:#7c3aed;--teal:#0B6E5F;--green:#059669;--red:#dc2626;--amber:#b45309;--serif:'Instrument Serif',serif;--mono:'IBM Plex Mono',monospace;--sans:'DM Sans',system-ui,sans-serif}}
 html{{font-size:15px}}
 body{{background:var(--bg);color:var(--t1);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}}
 @media print{{body{{background:#fff;color:#111}}:root{{--bg:#fff;--s1:#f8f8f8;--s2:#f0f0f0;--s3:#e8e8e8;--b1:rgba(0,0,0,0.08);--b2:rgba(0,0,0,0.12);--t1:#111;--t2:#444;--t3:#888}}.toolbar{{display:none}}.page{{max-width:100%;border-radius:0;box-shadow:none}}}}
 
-.toolbar{{position:sticky;top:0;z-index:100;height:52px;background:rgba(9,9,15,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 32px}}
-.tb-brand{{display:flex;align-items:center;gap:8px;text-decoration:none}}.tb-mark{{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff}}.tb-name{{font-family:var(--mono);font-size:.72rem;color:var(--t1)}}
+.toolbar{{position:sticky;top:0;z-index:100;height:52px;background:rgba(250,251,253,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 32px}}
+.tb-brand{{display:flex;align-items:center;gap:8px;text-decoration:none}}.tb-mark{{width:24px;height:24px;border-radius:6px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff}}.tb-name{{font-family:var(--mono);font-size:.72rem;color:var(--t1)}}
 .tb-right{{display:flex;gap:8px}}
-.btn-print{{padding:7px 16px;border-radius:6px;border:1px solid rgba(107,143,255,0.25);background:rgba(107,143,255,0.07);color:var(--blue);font-family:var(--mono);font-size:.6rem;cursor:pointer;transition:all .2s}}.btn-print:hover{{background:rgba(107,143,255,0.14)}}
+.btn-print{{padding:7px 16px;border-radius:6px;border:1px solid rgba(11,110,95,0.2);background:rgba(11,110,95,0.07);color:var(--teal);font-family:var(--mono);font-size:.6rem;cursor:pointer;transition:all .2s}}.btn-print:hover{{background:rgba(11,110,95,0.14)}}
 .btn-close{{padding:7px 12px;border-radius:6px;border:1px solid var(--b1);background:transparent;color:var(--t3);font-family:var(--mono);font-size:.6rem;cursor:pointer}}.btn-close:hover{{color:var(--t2)}}
 
-.page{{max-width:900px;margin:32px auto 80px;background:var(--s1);border:1px solid var(--b1);border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}}
+.page{{max-width:900px;margin:32px auto 80px;background:var(--s1);border:1px solid var(--b1);border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06)}}
 
 /* REPORT HEADER */
 .rpt-header{{padding:36px 40px;border-bottom:1px solid var(--b1)}}
 .rpt-org{{display:flex;align-items:center;gap:10px;margin-bottom:20px}}
-.rpt-mark{{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#fff}}
+.rpt-mark{{width:36px;height:36px;border-radius:9px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#fff;font-weight:500}}
 .rpt-org-name{{font-family:var(--serif);font-size:1.15rem;font-weight:400;color:var(--t1)}}.rpt-org-sub{{font-family:var(--mono);font-size:.58rem;color:var(--t3);margin-top:1px}}
 .rpt-title{{font-family:var(--serif);font-size:1.9rem;font-weight:400;font-style:italic;letter-spacing:.01em;margin-bottom:6px}}
 .rpt-subtitle{{font-family:var(--mono);font-size:.62rem;color:var(--t3);margin-bottom:20px}}
@@ -1127,7 +1127,7 @@ body{{background:var(--bg);color:var(--t1);font-family:var(--sans);-webkit-font-
 /* DECISION BANNER */
 .dec-banner{{margin:28px 40px;border-radius:12px;padding:22px 24px;border:1px solid {dec_border};background:{dec_bg};display:flex;align-items:flex-start;gap:16px}}
 .dec-icon{{width:48px;height:48px;border-radius:12px;border:1.5px solid {dec_col};color:{dec_col};display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;flex-shrink:0}}
-.dec-label{{font-family:var(--serif);font-size:2.4rem;font-weight:500;font-style:italic;color:{dec_col};line-height:1;margin-bottom:5px}}
+.dec-label{{font-family:var(--serif);font-size:2.4rem;font-weight:400;font-style:italic;color:{dec_col};line-height:1;margin-bottom:5px}}
 .dec-conf{{font-family:var(--mono);font-size:.65rem;color:{dec_col};opacity:.8;margin-bottom:6px}}
 .dec-id{{font-family:var(--mono);font-size:.58rem;color:{dec_col};opacity:.55}}
 
@@ -1151,23 +1151,23 @@ body{{background:var(--bg);color:var(--t1);font-family:var(--sans);-webkit-font-
 .rules-table tr:last-child td{{border:none}}
 .rule-id{{font-family:var(--mono);font-size:.68rem;font-weight:500;white-space:nowrap}}.rule-status{{font-family:var(--mono);font-size:.62rem;white-space:nowrap;font-weight:500}}.rule-reason{{font-size:.72rem;color:var(--t2);line-height:1.45}}
 tr.rule-pass .rule-status{{color:var(--green)}}tr.rule-fail .rule-status{{color:var(--red)}}tr.rule-warn .rule-status{{color:var(--amber)}}
-tr.rule-pass{{background:rgba(52,217,123,0.02)}}tr.rule-fail{{background:rgba(255,107,107,0.03)}}tr.rule-warn{{background:rgba(245,166,35,0.03)}}
+tr.rule-pass{{background:rgba(5,150,105,0.03)}}tr.rule-fail{{background:rgba(220,38,38,0.03)}}tr.rule-warn{{background:rgba(180,83,9,0.03)}}
 
 /* MOE */
-.moe-block{{background:rgba(166,127,255,0.04);border:1px solid rgba(166,127,255,0.15);border-radius:10px;overflow:hidden}}
-.moe-header{{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(166,127,255,0.1)}}
+.moe-block{{background:rgba(124,58,237,0.04);border:1px solid rgba(124,58,237,0.15);border-radius:10px;overflow:hidden}}
+.moe-header{{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(124,58,237,0.1)}}
 .moe-consensus{{font-family:var(--mono);font-size:.65rem;font-weight:500;color:var(--t1);margin-bottom:2px}}.moe-experts-list{{font-family:var(--mono);font-size:.58rem;color:var(--t3)}}
 .moe-conf-avg{{font-family:var(--serif);font-size:1.5rem;font-style:italic;color:var(--purple);text-align:center}}
-.moe-expert{{padding:12px 14px;border-bottom:1px solid rgba(166,127,255,0.08)}}.moe-expert:last-of-type{{border:none}}
+.moe-expert{{padding:12px 14px;border-bottom:1px solid rgba(124,58,237,0.08)}}.moe-expert:last-of-type{{border:none}}
 .moe-expert-header{{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}}
 .moe-expert-name{{font-size:.78rem;font-weight:500;color:var(--t1);margin-bottom:2px}}.moe-expert-assess{{font-family:var(--mono);font-size:.62rem;color:var(--t3)}}
 .moe-risk{{font-family:var(--mono);font-size:.56rem;padding:2px 7px;border-radius:4px;border:1px solid;background:transparent}}.moe-conf{{font-family:var(--mono);font-size:.62rem;color:var(--t3)}}
-.moe-narr{{font-size:.74rem;color:var(--t2);line-height:1.65;margin:8px 0;padding:10px 12px;background:var(--s3);border-radius:7px;border-left:2px solid rgba(166,127,255,0.3)}}
-.moe-img-assess{{font-size:.72rem;color:rgba(107,143,255,.8);margin:6px 0;padding:7px 10px;background:rgba(107,143,255,0.05);border-radius:6px}}
+.moe-narr{{font-size:.74rem;color:var(--t2);line-height:1.65;margin:8px 0;padding:10px 12px;background:var(--s3);border-radius:7px;border-left:2px solid rgba(124,58,237,0.3)}}
+.moe-img-assess{{font-size:.72rem;color:var(--blue);margin:6px 0;padding:7px 10px;background:rgba(37,99,235,0.05);border-radius:6px}}
 .moe-flags-wrap{{display:flex;flex-direction:column;gap:4px;margin:6px 0}}
-.moe-flag{{font-size:.7rem;color:rgba(255,150,100,.8);padding:4px 8px;background:rgba(255,107,107,0.05);border-radius:5px;border:1px solid rgba(255,107,107,0.12)}}
-.moe-flag.ok{{color:rgba(52,217,123,.7);background:rgba(52,217,123,0.05);border-color:rgba(52,217,123,0.15)}}
-.moe-rec{{font-size:.7rem;color:rgba(45,212,191,.75);padding:4px 8px}}
+.moe-flag{{font-size:.7rem;color:var(--red);padding:4px 8px;background:rgba(220,38,38,0.05);border-radius:5px;border:1px solid rgba(220,38,38,0.15)}}
+.moe-flag.ok{{color:var(--green);background:rgba(5,150,105,0.05);border-color:rgba(5,150,105,0.2)}}
+.moe-rec{{font-size:.7rem;color:var(--teal);padding:4px 8px}}
 .no-data-block{{font-family:var(--mono);font-size:.65rem;color:var(--t3);padding:12px;background:var(--s2);border-radius:7px}}
 
 /* PASSAGES */
@@ -1194,7 +1194,7 @@ tr.rule-pass{{background:rgba(52,217,123,0.02)}}tr.rule-fail{{background:rgba(25
 .rpt-section-header:first-child{{margin-top:0}}
 .rpt-sec-num{{font-family:var(--mono);font-size:.56rem;font-weight:500;color:var(--sec-col,#6b8fff);border:1px solid;border-radius:4px;padding:2px 7px;flex-shrink:0}}
 .rpt-sec-title{{font-family:var(--serif);font-size:1.05rem;font-weight:500;font-style:italic;color:var(--t1)}}
-.rpt-h3{{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);margin:14px 0 8px;padding-left:8px;border-left:2px solid rgba(255,255,255,.1)}}
+.rpt-h3{{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);margin:14px 0 8px;padding-left:8px;border-left:2px solid var(--b2)}}
 .rpt-hr{{border:none;border-top:1px solid var(--b1);margin:12px 0}}
 .rpt-kv{{display:flex;gap:12px;padding:5px 0;border-bottom:1px solid var(--b1);font-size:.78rem}}
 .rpt-kv:last-of-type{{border:none}}
@@ -1213,7 +1213,7 @@ tr.rule-pass{{background:rgba(52,217,123,0.02)}}tr.rule-fail{{background:rgba(25
 .rpt-table th{{padding:8px 12px;text-align:left;font-family:var(--mono);font-size:.54rem;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);background:var(--s2);border-bottom:1px solid var(--b1);white-space:nowrap}}
 .rpt-table td{{padding:8px 12px;border-bottom:1px solid var(--b1);color:var(--t2);vertical-align:top;line-height:1.45}}
 .rpt-table tr:last-child td{{border:none}}
-.rpt-table tr:hover td{{background:rgba(255,255,255,.015)}}
+.rpt-table tr:hover td{{background:var(--s3)}}
 .rpt-table td:first-child{{color:var(--t1)}}
 </style>
 </head>
