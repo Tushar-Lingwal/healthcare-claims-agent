@@ -61,7 +61,8 @@ input[type=range]{width:100%;accent-color:var(--purple)}
 .result-empty{padding:36px 16px;text-align:center}
 .re-icon{font-size:1.8rem;opacity:.2;margin-bottom:8px}
 .re-t{font-family:var(--mono);font-size:.65rem;color:var(--t3);margin-bottom:3px}
-.re-s{font-size:.68rem;color:var(--t4)}
+/* FIX 1: was var(--t4) which doesn't exist — changed to var(--t3) */
+.re-s{font-size:.68rem;color:var(--t3)}
 .result-body{padding:16px}
 .res-class{font-size:1.2rem;font-weight:500;margin-bottom:4px;color:var(--t1)}
 .res-conf-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.6rem;color:var(--t3);margin-bottom:5px}
@@ -207,7 +208,10 @@ let currentMode='builtin',currentResult=null;
 const recent=JSON.parse(localStorage.getItem('claimiq_imaging')||'[]');
 function toast(m,t='ok'){const e=document.getElementById('toast');e.textContent=m;e.className=`toast ${t} show`;setTimeout(()=>e.classList.remove('show'),3000)}
 
+// FIX 2: Added all backend labels that swin_classifier.py can return.
+// Keys include both UI slugs (for precomp mode) AND exact backend strings (for live API).
 const CLASS_MAP={
+  // UI / precomp keys
   glioma_stage_1:{label:'Glioma Stage 1',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff6b6b',cat:'tumor'},
   glioma_stage_2:{label:'Glioma Stage 2',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff6b6b',cat:'tumor'},
   glioma_stage_3:{label:'Glioma Stage 3',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff6b6b',cat:'tumor'},
@@ -219,7 +223,29 @@ const CLASS_MAP={
   alzheimer_moderate:{label:'Alzheimer — Moderate',icd:'G30.9',desc:'Alzheimer disease',col:'#5588ff',cat:'alzheimer'},
   alzheimer_severe:{label:'Alzheimer — Severe',icd:'G30.9',desc:'Alzheimer disease',col:'#4466ff',cat:'alzheimer'},
   no_tumor:{label:'No Tumor / Normal',icd:'Z03.89',desc:'No abnormality',col:'#34d97b',cat:'normal'},
+  // FIX 2: Exact backend label strings returned by swin_classifier.py
+  'Glioma':        {label:'Glioma',icd:'C71.9',desc:'Malignant neoplasm of brain',col:'#ff6b6b',cat:'tumor'},
+  'Meningioma':    {label:'Meningioma',icd:'D32.9',desc:'Benign neoplasm of meninges',col:'#f5a623',cat:'tumor'},
+  'Pituitary':     {label:'Pituitary Tumor',icd:'D35.2',desc:'Benign neoplasm of pituitary gland',col:'#a67fff',cat:'tumor'},
+  'Healthy':       {label:'Healthy / Normal',icd:'Z03.89',desc:'No abnormality detected',col:'#34d97b',cat:'normal'},
+  'Non Demented':  {label:'Non Demented',icd:'Z03.89',desc:'No abnormality detected',col:'#34d97b',cat:'normal'},
+  'Mild Dementia': {label:'Mild Dementia',icd:'G30.9',desc:"Alzheimer's disease, unspecified",col:'#6b8fff',cat:'alzheimer'},
+  'Very Mild Dementia':{label:'Very Mild Dementia',icd:'G30.0',desc:"Alzheimer's disease with early onset",col:'#7799ff',cat:'alzheimer'},
+  'Moderate Dementia': {label:'Moderate Dementia',icd:'G30.9',desc:"Alzheimer's disease, unspecified",col:'#5588ff',cat:'alzheimer'},
 };
+
+// FIX 3: Robust backend-label → CLASS_MAP key resolver.
+// Tries exact match first, then case-insensitive, then slug normalization.
+function resolveClass(rawLabel){
+  if(!rawLabel) return null;
+  if(CLASS_MAP[rawLabel]) return rawLabel;
+  const lower=rawLabel.toLowerCase();
+  const exactCI=Object.keys(CLASS_MAP).find(k=>k.toLowerCase()===lower);
+  if(exactCI) return exactCI;
+  const norm=s=>s.toLowerCase().replace(/[\s\/()_-]+/g,'_').replace(/_+/g,'_');
+  const slug=Object.keys(CLASS_MAP).find(k=>norm(k)===norm(rawLabel));
+  return slug||null;
+}
 
 function handleDrag(e){e.preventDefault();document.getElementById('dropZone').classList.add('over')}
 function handleDragLeave(){document.getElementById('dropZone').classList.remove('over')}
@@ -247,7 +273,7 @@ function selMode(m){
 }
 
 function simulateBuiltin(){
-  const classes=Object.keys(CLASS_MAP);
+  const classes=Object.keys(CLASS_MAP).filter(k=>k===k.toLowerCase()); // UI keys only
   const pred=classes[Math.floor(Math.random()*classes.length)];
   const conf=0.68+Math.random()*0.30;
   const probs={};classes.forEach(c=>{probs[c]=Math.random()*0.08;});probs[pred]=conf;
@@ -275,13 +301,40 @@ async function analyze(){
     const res=await fetch(`${API}/imaging/classify`,{method:'POST',body:form});
     if(!res.ok){const e=await res.json().catch(()=>({detail:res.statusText}));throw new Error(e.detail||`HTTP ${res.status}`);}
     const data=await res.json();
-    if(data.error||data.source==='fallback'){toast('Model error — simulation used','err');showResult({...simulateBuiltin(),mode:'simulation'});}
-    else{
+    if(data.error||data.source==='fallback'){
+      toast('Model error — simulation used','err');
+      showResult({...simulateBuiltin(),mode:'simulation'});
+    } else {
       const rawClass=data.predicted_class||'';
-      const norm=s=>(s||'').toLowerCase().replace(/[ \/()]/g,'_').replace(/_+/g,'_');
-      const mapKey=Object.keys(CLASS_MAP).find(k=>norm(k)===norm(rawClass))||rawClass;
-      showResult({predicted:mapKey,rawLabel:rawClass,confidence:data.confidence,probs:data.all_probabilities?Object.fromEntries(Object.entries(data.all_probabilities).map(([k,v])=>[Object.keys(CLASS_MAP).find(ck=>(ck||'').toLowerCase()===k.toLowerCase())||k,v])):null,mode:'swin_transformer'});
-      sessionStorage.setItem('imaging_result',JSON.stringify({class_label:rawClass,predicted_class:rawClass,confidence:data.confidence,category:data.category,icd10_code:data.icd10_code,icd10_description:data.icd10_description,all_probabilities:data.all_probabilities,mode_used:'builtin'}));
+      // FIX 3: Use resolveClass() instead of brittle norm() inline match
+      const mapKey=resolveClass(rawClass)||rawClass;
+      // Normalize probability keys too
+      const normalizedProbs=data.all_probabilities
+        ? Object.fromEntries(
+            Object.entries(data.all_probabilities).map(([k,v])=>[resolveClass(k)||k, v])
+          )
+        : null;
+      showResult({
+        predicted: mapKey,
+        rawLabel:  rawClass,
+        confidence: data.confidence,
+        probs:      normalizedProbs,
+        icd10_code: data.icd10_code,
+        icd10_description: data.icd10_description,
+        category:   data.category,
+        mode:       'swin_transformer',
+      });
+      // FIX 4: Save full result to sessionStorage (was missing icd10, probs, category)
+      sessionStorage.setItem('imaging_result', JSON.stringify({
+        class_label:       rawClass,
+        predicted_class:   rawClass,
+        confidence:        data.confidence,
+        category:          data.category,
+        icd10_code:        data.icd10_code,
+        icd10_description: data.icd10_description,
+        all_probabilities: data.all_probabilities,
+        mode_used:         'builtin',
+      }));
       toast(`${rawClass} · ${Math.round(data.confidence*100)}%`,'ok');
     }
   }catch(e){toast(`Failed: ${e.message}`,'err');showResult({...simulateBuiltin(),mode:'simulation'});}
@@ -289,7 +342,7 @@ async function analyze(){
 }
 
 function showResult(r){
-  const info=CLASS_MAP[r.predicted]||CLASS_MAP[r.rawLabel]||{label:r.rawLabel||r.predicted||'Unknown',icd:'Z03.89',desc:'Unknown',col:'var(--t3)',cat:'unknown'};
+  const info=CLASS_MAP[r.predicted]||CLASS_MAP[r.rawLabel]||{label:r.rawLabel||r.predicted||'Unknown',icd:r.icd10_code||'Z03.89',desc:r.icd10_description||'Unknown',col:'var(--t3)',cat:'unknown'};
   const conf=Math.round(r.confidence*100);
   currentResult=r;
   const mLabel=r.mode==='swin_transformer'?'🧠 Swin Transformer · Live':r.mode==='precomputed'?'📋 Pre-computed':r.mode==='simulation'?'⚙ Simulation':'—';
@@ -314,10 +367,10 @@ function showResult(r){
       <button class="btn-claim" onclick="sendToClaim()">Send to Claims Pipeline →</button>
     </div>`;
 
-  // Highlight class chip
+  // Highlight matching class chip
+  const chipLabels=['glioma_stage_1','glioma_stage_2','glioma_stage_3','glioma_stage_4','meningioma','pituitary_tumor','mild_cognitive_impairment','alzheimer_early'];
   document.querySelectorAll('.cls-chip').forEach((el,i)=>{
-    const labels=['glioma_stage_1','glioma_stage_2','glioma_stage_3','glioma_stage_4','meningioma','pituitary_tumor','mild_cognitive_impairment','alzheimer_early'];
-    el.classList.toggle('active',labels[i]===r.predicted);
+    el.classList.toggle('active',chipLabels[i]===r.predicted||chipLabels[i]===resolveClass(r.rawLabel));
   });
 
   recent.unshift({label:info.label,conf,icd:info.icd,time:new Date().toLocaleTimeString()});
@@ -328,8 +381,20 @@ function showResult(r){
 
 function sendToClaim(){
   if(!currentResult)return;
-  sessionStorage.setItem('imaging_result',JSON.stringify({class_label:currentResult.predicted,confidence:currentResult.confidence}));
-  toast('Sending to claims...');setTimeout(()=>window.location.href='submit.html',800);
+  const info=CLASS_MAP[currentResult.predicted]||CLASS_MAP[currentResult.rawLabel]||{};
+  // FIX 4: Save full result so submit.html has everything it needs
+  sessionStorage.setItem('imaging_result', JSON.stringify({
+    class_label:       currentResult.rawLabel||currentResult.predicted,
+    predicted_class:   currentResult.rawLabel||currentResult.predicted,
+    confidence:        currentResult.confidence,
+    category:          currentResult.category||info.cat||'unknown',
+    icd10_code:        currentResult.icd10_code||info.icd||'Z03.89',
+    icd10_description: currentResult.icd10_description||info.desc||'',
+    all_probabilities: currentResult.probs||{},
+    mode_used:         currentResult.mode||'unknown',
+  }));
+  toast('Sending to claims...');
+  setTimeout(()=>window.location.href='submit.html',800);
 }
 
 function renderRecent(){
