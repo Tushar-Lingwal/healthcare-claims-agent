@@ -191,7 +191,7 @@ class OrthopedicsExpert(BaseExpert):
         if all_ortho:
             assessment = (
                 f"{len(all_ortho)} orthopedic procedure(s) claimed: "
-                f"{', '.join(all_ortho.values()[:2])}. "
+                f"{', '.join(list(all_ortho.values())[:2])}. "
                 f"{len(risk_flags)} flag(s)."
             )
         else:
