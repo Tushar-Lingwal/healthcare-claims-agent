@@ -258,24 +258,42 @@ function simulateBuiltin(){
 
 async function analyze(){
   const btn=document.getElementById('analyzeBtn');
-  if(currentMode==='builtin'&&!document.getElementById('previewImg').src.includes('data:')){toast('Upload a scan first','err');return;}
   if(currentMode==='precomp'){
     const cls=document.getElementById('preClass').value;
     if(!cls){toast('Select a classification','err');return;}
-    const conf=parseInt(document.getElementById('precomp-conf')||document.querySelector('input[type=range]').value)/100;
-    showResult({predicted:cls,confidence:conf,probs:null});return;
+    const conf=parseInt(document.querySelector('input[type=range]').value)/100;
+    showResult({predicted:cls,confidence:conf,probs:null,mode:'precomputed'});return;
   }
-  btn.disabled=true;btn.textContent='Analysing...';
-  await new Promise(r=>setTimeout(r,2000));
-  showResult(simulateBuiltin());
-  btn.disabled=false;btn.textContent='Classify Scan →';
+  const fileInput=document.getElementById('fileInput');
+  if(!fileInput.files||!fileInput.files[0]){toast('Upload a scan first','err');return;}
+  btn.disabled=true;btn.textContent='Classifying...';
+  document.getElementById('resultSub').textContent='Sending to Swin Transformer...';
+  try{
+    const status=await fetch(`${API}/imaging/status`).then(r=>r.json()).catch(()=>({status:'unknown'}));
+    if(status.status==='offline'){toast('HF Space offline — simulation used','err');showResult({...simulateBuiltin(),mode:'simulation'});return;}
+    const form=new FormData();form.append('image',fileInput.files[0]);
+    const res=await fetch(`${API}/imaging/classify`,{method:'POST',body:form});
+    if(!res.ok){const e=await res.json().catch(()=>({detail:res.statusText}));throw new Error(e.detail||`HTTP ${res.status}`);}
+    const data=await res.json();
+    if(data.error||data.source==='fallback'){toast('Model error — simulation used','err');showResult({...simulateBuiltin(),mode:'simulation'});}
+    else{
+      const rawClass=data.predicted_class||'';
+      const norm=s=>(s||'').toLowerCase().replace(/[ \/()]/g,'_').replace(/_+/g,'_');
+      const mapKey=Object.keys(CLASS_MAP).find(k=>norm(k)===norm(rawClass))||rawClass;
+      showResult({predicted:mapKey,rawLabel:rawClass,confidence:data.confidence,probs:data.all_probabilities?Object.fromEntries(Object.entries(data.all_probabilities).map(([k,v])=>[Object.keys(CLASS_MAP).find(ck=>(ck||'').toLowerCase()===k.toLowerCase())||k,v])):null,mode:'swin_transformer'});
+      sessionStorage.setItem('imaging_result',JSON.stringify({class_label:rawClass,predicted_class:rawClass,confidence:data.confidence,category:data.category,icd10_code:data.icd10_code,icd10_description:data.icd10_description,all_probabilities:data.all_probabilities,mode_used:'builtin'}));
+      toast(`${rawClass} · ${Math.round(data.confidence*100)}%`,'ok');
+    }
+  }catch(e){toast(`Failed: ${e.message}`,'err');showResult({...simulateBuiltin(),mode:'simulation'});}
+  finally{btn.disabled=false;btn.textContent='Classify Scan →';}
 }
 
 function showResult(r){
-  const info=CLASS_MAP[r.predicted]||{label:r.predicted,icd:'Z03.89',desc:'Unknown',col:'var(--t3)',cat:'unknown'};
+  const info=CLASS_MAP[r.predicted]||CLASS_MAP[r.rawLabel]||{label:r.rawLabel||r.predicted||'Unknown',icd:'Z03.89',desc:'Unknown',col:'var(--t3)',cat:'unknown'};
   const conf=Math.round(r.confidence*100);
   currentResult=r;
-  document.getElementById('resultSub').textContent=`${new Date().toLocaleTimeString()}`;
+  const mLabel=r.mode==='swin_transformer'?'🧠 Swin Transformer · Live':r.mode==='precomputed'?'📋 Pre-computed':r.mode==='simulation'?'⚙ Simulation':'—';
+  document.getElementById('resultSub').textContent=`${mLabel} · ${new Date().toLocaleTimeString()}`;
 
   const probsHtml=r.probs?Object.entries(r.probs).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([cls,prob])=>{
     const pct=Math.round(prob*100);const isTop=cls===r.predicted;const ci=CLASS_MAP[cls];

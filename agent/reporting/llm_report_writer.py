@@ -25,37 +25,45 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-REPORT_SYSTEM_PROMPT = """You are a senior clinical documentation specialist and healthcare AI auditor. Your task is to write a detailed, professional clinical adjudication report that explains exactly how an AI claims adjudication system reached its decision.
+REPORT_SYSTEM_PROMPT = """You are a Senior Medical Director and Healthcare AI Auditor writing a formal Clinical Adjudication Report for submission to medical review boards, insurance commissioners, and clinical governance committees.
 
-The report must:
-1. Be written in clear, authoritative medical-administrative prose — not bullet points, not tables
-2. Explain the agent's REASONING PROCESS at every stage — what it looked for, what it found, why it mattered
-3. Cite specific evidence: ICD-10 codes, CPT codes, rule IDs, guideline passages, confidence scores
-4. Be honest about uncertainty — explain what triggered edge cases and what the risks are
-5. Give SPECIFIC, ACTIONABLE recommendations — not generic advice
-6. Be written for a clinical reviewer or senior medical director who needs to understand the full picture
+This is a LEGAL and CLINICAL document. It must be written with absolute precision, professional authority, and complete transparency about the AI system's reasoning process.
 
-Structure the report with these exact section headers (use ## for headers):
-## Executive Summary
-## Clinical Background and Patient Context
-## AI Agent Reasoning Process
-## Medical Coding Analysis
-## Policy Rule Evaluation
-## Clinical Guideline Evidence
-## Edge Case and Risk Analysis
-## Imaging Analysis (only if imaging was performed)
-## Final Decision Justification
-## Clinical and Administrative Recommendations
-## Agent Confidence Assessment
-## Limitations and Caveats
+DOCUMENT REQUIREMENTS:
+- Write in formal medical-administrative prose — complete paragraphs, no bullet points in narrative sections
+- Every claim must be supported by specific evidence from the data provided
+- Explain the AI's reasoning at each stage as if teaching a senior medical director
+- Use precise medical terminology with plain-English explanations where needed
+- Cite specific codes, rules, guidelines, and confidence scores throughout
+- Be honest about limitations and uncertainties
+- Total length: 1,500-2,500 words minimum
 
-Write each section as full paragraphs. Be specific, thorough, and professional. The goal is that a medical director reading this report can fully understand why the AI made its decision and has everything needed to either approve, override, or act on it.
+REQUIRED SECTIONS — use exactly these headers:
+## EXECUTIVE SUMMARY
+## PATIENT AND CLAIM OVERVIEW  
+## CLINICAL ENTITY EXTRACTION — STAGE 2 ANALYSIS
+## MEDICAL CODING ANALYSIS — STAGE 3 OUTPUT
+## CLINICAL GUIDELINE EVIDENCE — STAGE 4 RAG RETRIEVAL
+## POLICY RULE EVALUATION — STAGE 5 FINDINGS
+## MIXTURE OF EXPERTS ANALYSIS
+## IMAGING MODEL ANALYSIS
+## EDGE CASE AND ANOMALY DETECTION — STAGE 6
+## DECISION ENGINE OUTPUT — STAGE 7 REASONING
+## CLINICAL AND ADMINISTRATIVE RECOMMENDATIONS
+## LIMITATIONS AND AUDIT TRAIL
 
-Respond with ONLY the report content — no preamble, no meta-commentary. Start directly with ## Executive Summary."""
+WRITING STANDARDS:
+- Executive Summary: 2-3 authoritative paragraphs covering decision, confidence, and key factors
+- Each section: minimum 2 full paragraphs of substantive analysis
+- Recommendations: numbered, specific, actionable — name exact codes, timelines, and responsible parties
+- Never write generic statements — always reference specific data from the claim
+- If a section has no data (e.g. no imaging), explain why and what that means for the decision
+- Write for a medical director who will stake their professional reputation on this report
 
+Respond ONLY with the report content. Start directly with ## EXECUTIVE SUMMARY."""
 
 def _build_report_prompt(data: dict) -> str:
-    """Builds the user prompt from adjudication result data."""
+    """Builds the comprehensive user prompt from all available adjudication data."""
     dec         = data.get("decision", "unknown")
     conf        = data.get("confidence_score", 0)
     claim_id    = data.get("claim_id", "unknown")
@@ -71,206 +79,223 @@ def _build_report_prompt(data: dict) -> str:
     reasons     = data.get("reasons", [])
     notes       = data.get("_notes", "")
     plan        = data.get("_plan", "unknown")
-    img_result  = data.get("imaging_result") or data.get("_imaging", {})
+    moe         = data.get("moe_analysis") or {}
+    img_result  = data.get("imaging_result") or data.get("_imaging") or {}
 
-    # Format codes
-    icd_str  = "\n".join([f"  - {c['code']}: {c['description']} (confidence: {c['confidence']:.0%})" for c in icd_codes]) or "  None mapped"
-    cpt_str  = "\n".join([f"  - {c['code']}: {c['description']} (confidence: {c['confidence']:.0%})" for c in cpt_codes]) or "  None mapped"
+    # ── Format all data sections ──────────────────────────────────────────
 
-    # Format rules
+    icd_str = "\n".join([
+        f"  • {c['code']}: {c['description']} | Confidence: {c['confidence']:.1%} | "
+        f"Match type: {'exact' if c.get('is_exact_match') else 'fuzzy'}"
+        for c in icd_codes
+    ]) or "  No ICD-10 codes mapped"
+
+    cpt_str = "\n".join([
+        f"  • {c['code']}: {c['description']} | Confidence: {c['confidence']:.1%}"
+        for c in cpt_codes
+    ]) or "  No CPT codes mapped"
+
     passing  = [r for r in rules if r.get("passed")]
     blocking = [r for r in rules if not r.get("passed") and r.get("action") == "reject"]
     warning  = [r for r in rules if not r.get("passed") and r.get("action") == "flag_review"]
 
-    rule_str  = ""
+    rules_str  = ""
     if passing:
-        rule_str += "PASSED rules:\n" + "\n".join([f"  - {r['rule_id']}: {r['reason']}" for r in passing]) + "\n"
+        rules_str += f"PASSING RULES ({len(passing)}):\n" + "\n".join([
+            f"  ✓ {r['rule_id']}: {r['reason']}"
+            for r in passing
+        ]) + "\n\n"
     if blocking:
-        rule_str += "\nFAILED (BLOCKING) rules:\n" + "\n".join([f"  - {r['rule_id']}: {r['reason']}" for r in blocking]) + "\n"
+        rules_str += f"BLOCKING FAILURES ({len(blocking)}) — CAUSE OF REJECTION:\n" + "\n".join([
+            f"  ✗ {r['rule_id']}: {r['reason']}"
+            for r in blocking
+        ]) + "\n\n"
     if warning:
-        rule_str += "\nFAILED (WARNING) rules:\n" + "\n".join([f"  - {r['rule_id']}: {r['reason']}" for r in warning]) + "\n"
-    if not rule_str:
-        rule_str = "  No rules evaluated"
+        rules_str += f"WARNING FLAGS ({len(warning)}) — REQUIRE REVIEW:\n" + "\n".join([
+            f"  ⚠ {r['rule_id']}: {r['reason']}"
+            for r in warning
+        ]) + "\n"
+    if not rules_str:
+        rules_str = "  No rules evaluated"
 
-    # Format edges
-    edge_str = "\n".join([
-        f"  - Type: {e.get('type','unknown')} | Severity: {e.get('severity','unknown')}\n"
-        f"    Description: {e.get('description','')}\n"
-        f"    Recommendation: {e.get('recommendation','')}\n"
-        f"    {'Image signal: ' + str(e.get('image_signal','')) + ' | Text signal: ' + str(e.get('text_signal','')) + ' | Mismatch score: ' + str(e.get('mismatch_score','')) if e.get('image_signal') else ''}"
-        for e in edges
-    ]) or "  None detected"
-
-    # Format guideline passages
     passage_str = ""
-    for p in passages[:4]:
-        source  = p.get("source", "Unknown")
-        content = p.get("content", "")[:400]
-        rel     = p.get("relevance", 0)
-        passage_str += f"\n  Source: {source} (relevance: {rel:.3f})\n  Excerpt: {content}...\n"
+    for i, p in enumerate(passages[:5], 1):
+        passage_str += (
+            f"\n  [{i}] Source: {p.get('source', 'Unknown')} "
+            f"(Relevance: {p.get('relevance', 0):.3f})\n"
+            f"      Content: {p.get('content', '')[:500]}\n"
+        )
     if not passage_str:
         passage_str = "  No guideline passages retrieved"
 
-    # Format reasoning chain
     chain_str = "\n".join([
-        f"  Stage {s.get('step',i+1)}: {s.get('stage','unknown').replace('_',' ').upper()}\n"
-        f"    Confidence: {s.get('confidence',0):.0%}\n"
-        f"    Outcome: {s.get('outcome','')}"
+        f"  Stage {s.get('step', i+1)} — {s.get('stage','').replace('_',' ').upper()}: "
+        f"Confidence {s.get('confidence', 0):.1%} | {s.get('outcome','')}"
         for i, s in enumerate(chain)
-    ]) or "  No chain available"
+    ]) or "  No reasoning chain available"
 
-    # Format imaging
+    edge_str = ""
+    for e in edges:
+        edge_str += (
+            f"\n  Type: {e.get('type','unknown').replace('_',' ').upper()} | "
+            f"Severity: {e.get('severity','unknown').upper()}\n"
+            f"  Description: {e.get('description','')}\n"
+            f"  Recommendation: {e.get('recommendation','')}\n"
+        )
+        if e.get('image_signal'):
+            edge_str += (
+                f"  Image signal: {e['image_signal']} | "
+                f"Text signal: {e.get('text_signal','')} | "
+                f"Mismatch score: {e.get('mismatch_score',0):.2f}\n"
+            )
+    if not edge_str:
+        edge_str = "  No edge cases detected"
+
+    # ── MoE Analysis ──────────────────────────────────────────────────────
+    moe_str = ""
+    if moe and not moe.get("skipped"):
+        moe_str = f"""
+MOE SYSTEM SUMMARY:
+  Activated experts: {', '.join(moe.get('activated_experts', []))}
+  Consensus risk level: {moe.get('consensus_risk', 'unknown').upper()}
+  Average expert confidence: {moe.get('moe_confidence', 0):.1%}
+  Routing reason: {moe.get('routing_reason', '')}
+
+ROUTER SCORES:
+{chr(10).join([f"  {k}: {v:.1%}" for k, v in (moe.get('router_scores') or {}).items()])}
+
+EXPERT FINDINGS:"""
+        for f in (moe.get("findings") or []):
+            moe_str += f"""
+
+  {f.get('expert_name','').upper()} (Router score: {f.get('router_score',0):.1%} | Expert confidence: {f.get('expert_confidence',0):.1%})
+  Assessment: {f.get('assessment','')}
+  Risk level: {f.get('risk_level','').upper()}
+  Source: {f.get('source','')}
+  Risk flags: {'; '.join(f.get('risk_flags', [])) or 'None'}
+  Recommendations: {'; '.join(f.get('recommendations', [])) or 'None'}
+  Imaging assessment: {f.get('imaging_assessment') or 'N/A'}
+  Narrative: {f.get('narrative') or 'Not generated (LLM not configured)'}"""
+
+        if moe.get("suggested_codes"):
+            moe_str += f"""
+
+SUGGESTED ADDITIONAL CODES:
+{chr(10).join([f"  • {c['code']}: {c['description']} — {c.get('reason','')}" for c in moe['suggested_codes']])}"""
+
+        if moe.get("imaging_assessments"):
+            moe_str += f"""
+
+IMAGING ASSESSMENTS FROM EXPERTS:
+{chr(10).join([f"  • {a}" for a in moe['imaging_assessments']])}"""
+    else:
+        moe_str = "  MoE analysis not available for this claim (no experts activated or system unavailable)"
+
+    # ── Imaging ───────────────────────────────────────────────────────────
     img_str = ""
-    if img_result and (img_result.get("class_label") or img_result.get("predicted")):
-        label    = img_result.get("class_label") or img_result.get("predicted", "unknown")
-        conf_img = img_result.get("confidence", 0)
-        mode     = img_result.get("mode_used") or img_result.get("mode", "unknown")
-        icd_hint = img_result.get("icd10_suggestion", "")
+    if img_result and img_result.get("predicted_class"):
         img_str = f"""
-IMAGING ANALYSIS RESULTS:
-  Classification: {label}
-  Confidence: {conf_img:.0%}
-  Mode: {mode}
-  Suggested ICD-10: {icd_hint}
-  Note: Imaging result {'was' if img_result else 'was not'} incorporated into adjudication decision."""
+IMAGING MODEL RESULTS:
+  Model: Swin Transformer (swin_base_patch4_window7_224)
+  Primary classification: {img_result.get('predicted_class', 'Unknown')}
+  Confidence: {img_result.get('confidence', 0):.1%}
+  Category: {img_result.get('category', 'unknown')}
+  Suggested ICD-10: {img_result.get('icd10_code', '')} — {img_result.get('icd10_description', '')}
+  Mode: {img_result.get('mode_used', img_result.get('mode', 'unknown'))}"""
+        if img_result.get("all_probabilities"):
+            top3 = sorted(img_result["all_probabilities"].items(), key=lambda x: x[1], reverse=True)[:3]
+            img_str += f"""
+  Top-3 probabilities: {', '.join([f"{k}: {v:.1%}" for k, v in top3])}"""
+    else:
+        img_str = "  No imaging model output available for this claim"
 
-    prompt = f"""Write a comprehensive clinical adjudication report for the following case.
+    return f"""Write a comprehensive, professional Clinical Adjudication Report for the following claim.
+This report will be reviewed by medical directors, compliance officers, and clinical governance committees.
+Write with authority, precision, and complete transparency about the AI system's reasoning.
 
-═══════════════════════════════════════════════
-ADJUDICATION RESULT SUMMARY
-═══════════════════════════════════════════════
+{"="*70}
+CLAIM IDENTIFICATION
+{"="*70}
 Claim ID:           {claim_id}
 Audit Trace ID:     {trace_id}
 FINAL DECISION:     {dec.upper().replace('_', ' ')}
 Overall Confidence: {conf:.1%}
 Insurance Plan:     {plan.upper()}
-Decision Time:      {data.get('decided_at', 'unknown')}
+Decided At:         {data.get('decided_at', 'unknown')}
+Pipeline Version:   {data.get('pipeline_version', '1.0.0')}
 
-CLINICAL NOTES SUBMITTED:
+{"="*70}
+STAGE 1 — PHI TOKENIZATION
+{"="*70}
+All patient identifiers (name, DOB, policy number, MRN) were encrypted using
+AES-256 vault tokenization before entering the AI pipeline. No PHI appears
+anywhere in the processing chain or this audit report.
+
+{"="*70}
+STAGE 2 — CLINICAL NOTES SUBMITTED
+{"="*70}
 {notes or '(No clinical notes provided)'}
 
-AI SUMMARY (from pipeline):
-{summary or '(No summary generated)'}
+AI Summary: {summary or '(Not generated)'}
+Decision Reasons: {chr(10).join(f'  • {r}' for r in reasons) if reasons else '  None listed'}
+Risk Flags: {chr(10).join(f'  • {f}' for f in risk_flags) if risk_flags else '  None identified'}
 
-DECISION REASONS:
-{chr(10).join(f'  - {r}' for r in reasons) if reasons else '  None listed'}
-
-RISK FLAGS:
-{chr(10).join(f'  - {f}' for f in risk_flags) if risk_flags else '  None'}
-
-═══════════════════════════════════════════════
-MEDICAL CODING (Stage 3-4 output)
-═══════════════════════════════════════════════
-ICD-10-CM Diagnoses:
+{"="*70}
+STAGE 3 — MEDICAL CODING OUTPUT
+{"="*70}
+ICD-10-CM DIAGNOSIS CODES:
 {icd_str}
 
-CPT Procedures:
+CPT PROCEDURE CODES:
 {cpt_str}
 
-═══════════════════════════════════════════════
-POLICY RULE ENGINE (Stage 6 output)
-═══════════════════════════════════════════════
-{rule_str}
-
-═══════════════════════════════════════════════
-CLINICAL GUIDELINE RAG (Stage 5 output)
-═══════════════════════════════════════════════
+{"="*70}
+STAGE 4 — CLINICAL GUIDELINE RAG RETRIEVAL
+{"="*70}
 {passage_str}
 
-═══════════════════════════════════════════════
-EDGE CASE DETECTION (Stage 7 output)
-═══════════════════════════════════════════════
-{edge_str}
+{"="*70}
+STAGE 5 — POLICY RULE ENGINE (14 rules evaluated)
+{"="*70}
+{rules_str}
 
-═══════════════════════════════════════════════
-AI REASONING CHAIN (all stages)
-═══════════════════════════════════════════════
-{chain_str}
+{"="*70}
+STAGE 5b — MIXTURE OF EXPERTS ANALYSIS
+{"="*70}
+{moe_str}
+
+{"="*70}
+STAGE 5c — IMAGING MODEL OUTPUT
+{"="*70}
 {img_str}
 
-═══════════════════════════════════════════════
+{"="*70}
+STAGE 6 — EDGE CASE DETECTION
+{"="*70}
+{edge_str}
+
+{"="*70}
+STAGE 7 — DECISION ENGINE REASONING CHAIN
+{"="*70}
+{chain_str}
+
+{"="*70}
 CONTEXT FOR REPORT WRITING
-═══════════════════════════════════════════════
-- This report is for a clinical reviewer / medical director
-- Explain the AI's thinking at each stage in detail
-- Be specific about which codes, rules, and guidelines influenced the decision
-- If APPROVED: explain why the evidence was sufficient and what should happen next
-- If REJECTED: explain exactly what is wrong and precisely what must be corrected
-- If NEEDS REVIEW: explain what is uncertain, what needs human judgment, and why
-- For imaging: explain how the imaging result relates to the clinical text and whether they agree
-- Write in authoritative medical-administrative prose — full paragraphs, no bullet points in body text
-- Minimum 1200 words. Be thorough.
+{"="*70}
+Decision: {dec.upper().replace('_', ' ')} at {conf:.1%} confidence
 
-Now write the full clinical adjudication report:"""
+If APPROVED: Explain comprehensively why all evidence supports approval.
+  Detail each passing rule, the guideline evidence, and why the codes are medically appropriate.
+If REJECTED: Explain precisely what is wrong, why it violates policy, and exactly what must be fixed.
+  Be specific — name the rule, the code, the plan limitation, and the exact corrective action.
+If NEEDS REVIEW: Explain the specific uncertainties, what human judgment is needed, and why automation cannot resolve it.
 
-    return prompt
+For MoE experts: Explain what each activated expert found, what their assessment means clinically,
+and how their findings influenced or should influence the final decision.
 
+For imaging: Explain what the model found, how confident it was, and whether it agrees with the clinical notes.
 
-def _call_groq(prompt: str, system: str) -> Optional[str]:
-    try:
-        from groq import Groq
-        client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
-        model  = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
-        resp   = client.chat.completions.create(
-            model=model, max_tokens=4000, temperature=0.3,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user",   "content": prompt},
-            ],
-        )
-        return resp.choices[0].message.content.strip()
-    except Exception as e:
-        logger.warning(f"Groq report generation failed: {e}")
-        return None
-
-
-def _call_gemini(prompt: str, system: str) -> Optional[str]:
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=os.environ.get("GEMINI_API_KEY", ""))
-        model = genai.GenerativeModel(
-            model_name=os.environ.get("GEMINI_MODEL", "gemini-1.5-flash"),
-            system_instruction=system,
-        )
-        resp = model.generate_content(prompt, generation_config={"temperature": 0.3, "max_output_tokens": 4000})
-        return resp.text.strip()
-    except Exception as e:
-        logger.warning(f"Gemini report generation failed: {e}")
-        return None
-
-
-def _call_anthropic(prompt: str, system: str) -> Optional[str]:
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
-        resp   = client.messages.create(
-            model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
-            max_tokens=4000,
-            system=system,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return resp.content[0].text.strip()
-    except Exception as e:
-        logger.warning(f"Anthropic report generation failed: {e}")
-        return None
-
-
-def _call_openai(prompt: str, system: str) -> Optional[str]:
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
-        resp   = client.chat.completions.create(
-            model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
-            max_tokens=4000, temperature=0.3,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user",   "content": prompt},
-            ],
-        )
-        return resp.choices[0].message.content.strip()
-    except Exception as e:
-        logger.warning(f"OpenAI report generation failed: {e}")
-        return None
+Write the complete professional report now:"""
 
 
 def generate_llm_narrative(data: dict) -> Optional[str]:
@@ -762,10 +787,8 @@ def markdown_to_html_sections(md: str) -> str:
 
 
 def build_full_report_html(data: dict, narrative: str, generated_at: datetime) -> str:
-    """
-    Builds the complete HTML document for the clinical report.
-    Combines the structured metadata header with the LLM-written narrative body.
-    """
+    """Builds a professional clinical report HTML document."""
+    import os
     dec      = data.get("decision", "unknown")
     conf     = data.get("confidence_score", 0)
     claim_id = data.get("claim_id", "")
@@ -775,155 +798,219 @@ def build_full_report_html(data: dict, narrative: str, generated_at: datetime) -
     cpt      = data.get("cpt_codes", [])
     rules    = data.get("rule_evaluations", [])
     edges    = data.get("edge_cases", [])
+    moe      = data.get("moe_analysis") or {}
+    notes    = data.get("_notes", "")
+    passages = data.get("rag_passages", [])
 
     if dec == "approved":
-        dec_col = "#065f46"; dec_bg = "#d1fae5"; dec_border = "#6ee7b7"; dec_label = "APPROVED"
+        dec_col="#34d97b"; dec_bg="rgba(52,217,123,0.08)"; dec_border="rgba(52,217,123,0.25)"; dec_label="APPROVED"
     elif dec == "rejected":
-        dec_col = "#991b1b"; dec_bg = "#fee2e2"; dec_border = "#fca5a5"; dec_label = "REJECTED"
+        dec_col="#ff6b6b"; dec_bg="rgba(255,107,107,0.08)"; dec_border="rgba(255,107,107,0.25)"; dec_label="REJECTED"
     else:
-        dec_col = "#78350f"; dec_bg = "#fef3c7"; dec_border = "#fcd34d"; dec_label = "NEEDS REVIEW"
+        dec_col="#f5a623"; dec_bg="rgba(245,166,35,0.08)"; dec_border="rgba(245,166,35,0.25)"; dec_label="NEEDS REVIEW"
 
+    passing  = [r for r in rules if r.get("passed")]
+    blocking = [r for r in rules if not r.get("passed") and r.get("action") == "reject"]
+    warning  = [r for r in rules if not r.get("passed") and r.get("action") == "flag_review"]
+
+    # Convert narrative markdown to HTML
     narrative_html = markdown_to_html_sections(narrative)
 
+    # ICD chips
     icd_chips = "".join([
-        f'<div class="meta-chip"><span class="chip-code">{c["code"]}</span>'
-        f'<span class="chip-desc">{c["description"]}</span>'
-        f'<span class="chip-conf">{c["confidence"]:.0%}</span></div>'
+        f'<div class="code-chip">'
+        f'<div class="chip-code">{c["code"]}</div>'
+        f'<div class="chip-desc">{c["description"]}</div>'
+        f'<div class="chip-conf">{c["confidence"]:.0%} confidence</div>'
+        f'</div>'
         for c in icd
-    ]) or '<span class="no-data">None mapped</span>'
+    ]) or '<span class="no-data">No codes mapped</span>'
 
     cpt_chips = "".join([
-        f'<div class="meta-chip cpt-chip"><span class="chip-code cpt">{c["code"]}</span>'
-        f'<span class="chip-desc">{c["description"]}</span>'
-        f'<span class="chip-conf">{c["confidence"]:.0%}</span></div>'
+        f'<div class="code-chip cpt">'
+        f'<div class="chip-code">{c["code"]}</div>'
+        f'<div class="chip-desc">{c["description"]}</div>'
+        f'<div class="chip-conf">{c["confidence"]:.0%} confidence</div>'
+        f'</div>'
         for c in cpt
-    ]) or '<span class="no-data">None mapped</span>'
+    ]) or '<span class="no-data">No codes mapped</span>'
 
+    # Rules table
     rule_rows = "".join([
-        f'<tr class="rule-row-{"pass" if r["passed"] else ("fail" if r.get("action")=="reject" else "warn")}">'
-        f'<td class="rule-id-cell">{r["rule_id"]}</td>'
+        f'<tr class="rule-{"pass" if r["passed"] else ("fail" if r.get("action")=="reject" else "warn")}">'
+        f'<td class="rule-id">{r["rule_id"]}</td>'
         f'<td class="rule-status">{"✓ PASS" if r["passed"] else ("✗ REJECT" if r.get("action")=="reject" else "⚠ REVIEW")}</td>'
-        f'<td class="rule-reason-cell">{r["reason"]}</td></tr>'
+        f'<td class="rule-reason">{r["reason"]}</td>'
+        f'</tr>'
         for r in rules
     ]) or '<tr><td colspan="3" class="no-data">No rules evaluated</td></tr>'
+
+    # MoE summary
+    moe_section = ""
+    if moe and not moe.get("skipped"):
+        experts_html = ""
+        for f in (moe.get("findings") or []):
+            risk = f.get("risk_level","low")
+            rcol = "#ff6b6b" if risk in ["critical","high"] else "#f5a623" if risk == "moderate" else "#34d97b"
+            flags_html = "".join([f'<div class="moe-flag">{fl}</div>' for fl in (f.get("risk_flags") or [])]) or '<div class="moe-flag ok">No flags from this expert</div>'
+            recs_html  = "".join([f'<div class="moe-rec">→ {r}</div>' for r in (f.get("recommendations") or [])])
+            narr_html  = f'<div class="moe-narr">{f["narrative"]}</div>' if f.get("narrative") else ""
+            img_html   = f'<div class="moe-img-assess"><strong>Imaging:</strong> {f["imaging_assessment"]}</div>' if f.get("imaging_assessment") else ""
+            experts_html += f"""
+            <div class="moe-expert">
+              <div class="moe-expert-header">
+                <div>
+                  <div class="moe-expert-name">{f.get("expert_name","")}</div>
+                  <div class="moe-expert-assess">{f.get("assessment","")}</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+                  <span class="moe-risk" style="color:{rcol};border-color:{rcol}">{risk.upper()}</span>
+                  <span class="moe-conf">{f.get("expert_confidence",0):.0%}</span>
+                </div>
+              </div>
+              {img_html}
+              {narr_html}
+              <div class="moe-flags-wrap">{flags_html}</div>
+              <div class="moe-recs-wrap">{recs_html}</div>
+            </div>"""
+
+        sug_codes = ""
+        if moe.get("suggested_codes"):
+            sug_codes = '<div class="sub-label">Suggested Additional Codes</div><div class="code-grid">' + "".join([
+                f'<div class="code-chip purple"><div class="chip-code">{c["code"]}</div><div class="chip-desc">{c["description"]}</div><div class="chip-conf">{c.get("reason","")}</div></div>'
+                for c in moe["suggested_codes"]
+            ]) + "</div>"
+
+        moe_section = f"""
+        <div class="moe-block">
+          <div class="moe-header">
+            <div>
+              <div class="moe-consensus">Consensus Risk: <span style="color:{dec_col}">{moe.get("consensus_risk","").upper()}</span></div>
+              <div class="moe-experts-list">Activated: {", ".join(moe.get("activated_experts",[]))}</div>
+            </div>
+            <div class="moe-conf-avg">{moe.get("moe_confidence",0):.0%}<div style="font-size:.6rem;color:rgba(255,255,255,.4);margin-top:2px">avg conf</div></div>
+          </div>
+          {experts_html}
+          {sug_codes}
+        </div>"""
+    else:
+        moe_section = '<div class="no-data-block">No MoE expert analysis — no specialists activated for this claim type</div>'
+
+    # Guideline passages
+    passages_html = ""
+    for p in passages[:4]:
+        passages_html += f"""
+        <div class="passage-block">
+          <div class="passage-source">{p.get("source","Unknown")} <span class="passage-rel">Relevance: {p.get("relevance",0):.3f}</span></div>
+          <div class="passage-content">{p.get("content","")[:500]}...</div>
+        </div>"""
+    if not passages_html:
+        passages_html = '<div class="no-data-block">No guideline passages retrieved for this claim</div>'
+
+    provider = os.environ.get("LLM_PROVIDER","rules")
 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ClaimIQ Clinical Report — {claim_id}</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Clinical Adjudication Report — {claim_id}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
-:root{{
-  --cream:#f6f4ee;--white:#fff;--paper:#faf9f6;--stone:#eae8e0;--ash:#d8d6cc;
-  --ink:#18181a;--ink2:#4a4845;--ink3:#8a8780;--ink4:#b8b5ac;
-  --blue:#1e40af;--purple:#5b21b6;
-  --serif:'Fraunces',Georgia,serif;--mono:'DM Mono','Courier New',monospace;--sans:'DM Sans',system-ui,sans-serif;
-}}
-html{{font-size:15px;scroll-behavior:smooth}}
-body{{background:var(--cream);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}}
-body::before{{content:'';position:fixed;inset:0;z-index:-2;background:radial-gradient(ellipse 900px 600px at 15% 20%,rgba(30,64,175,0.04) 0%,transparent 70%),radial-gradient(ellipse 700px 500px at 85% 75%,rgba(91,33,182,0.04) 0%,transparent 70%);pointer-events:none}}
-body::after{{content:'';position:fixed;inset:0;z-index:-1;background-image:radial-gradient(circle,rgba(24,24,26,0.055) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 30%,transparent 100%);pointer-events:none}}
-@media print{{body{{background:#fff}}body::before,body::after{{display:none}}.no-print{{display:none!important}}.page{{max-width:100%;margin:0;border-radius:0;box-shadow:none}}}}
+:root{{--bg:#09090f;--s1:#111118;--s2:#18181f;--s3:#202028;--b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.10);--t1:#e8e8f0;--t2:#8888a8;--t3:#44445a;--blue:#6b8fff;--purple:#a67fff;--green:#34d97b;--red:#ff6b6b;--amber:#f5a623;--serif:'Cormorant Garamond',Georgia,serif;--mono:'DM Mono',monospace;--sans:'DM Sans',system-ui,sans-serif}}
+html{{font-size:15px}}
+body{{background:var(--bg);color:var(--t1);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}}
+@media print{{body{{background:#fff;color:#111}}:root{{--bg:#fff;--s1:#f8f8f8;--s2:#f0f0f0;--s3:#e8e8e8;--b1:rgba(0,0,0,0.08);--b2:rgba(0,0,0,0.12);--t1:#111;--t2:#444;--t3:#888}}.toolbar{{display:none}}.page{{max-width:100%;border-radius:0;box-shadow:none}}}}
 
-/* TOOLBAR */
-.toolbar{{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--stone);display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:58px;box-shadow:0 1px 3px rgba(0,0,0,.05)}}
-.tb-brand{{display:flex;align-items:center;gap:10px;text-decoration:none}}
-.tb-logo{{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#1e40af,#5b21b6);display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--mono);font-size:10px;font-weight:500}}
-.tb-name{{font-family:var(--serif);font-size:1rem;color:var(--ink)}}
-.tb-sub{{font-family:var(--mono);font-size:.55rem;color:var(--ink3)}}
-.tb-right{{display:flex;gap:8px;align-items:center}}
-.btn-print{{padding:8px 18px;border-radius:8px;border:1.5px solid var(--blue);background:#eff6ff;color:var(--blue);font-family:var(--sans);font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s}}
-.btn-print:hover{{background:var(--blue);color:#fff}}
-.btn-close{{padding:8px 14px;border-radius:8px;border:1px solid var(--stone);background:var(--white);color:var(--ink2);font-family:var(--sans);font-size:.78rem;cursor:pointer;transition:all .2s}}
-.btn-close:hover{{border-color:var(--ash)}}
+.toolbar{{position:sticky;top:0;z-index:100;height:52px;background:rgba(9,9,15,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 32px}}
+.tb-brand{{display:flex;align-items:center;gap:8px;text-decoration:none}}.tb-mark{{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff}}.tb-name{{font-family:var(--mono);font-size:.72rem;color:var(--t1)}}
+.tb-right{{display:flex;gap:8px}}
+.btn-print{{padding:7px 16px;border-radius:6px;border:1px solid rgba(107,143,255,0.25);background:rgba(107,143,255,0.07);color:var(--blue);font-family:var(--mono);font-size:.6rem;cursor:pointer;transition:all .2s}}.btn-print:hover{{background:rgba(107,143,255,0.14)}}
+.btn-close{{padding:7px 12px;border-radius:6px;border:1px solid var(--b1);background:transparent;color:var(--t3);font-family:var(--mono);font-size:.6rem;cursor:pointer}}.btn-close:hover{{color:var(--t2)}}
 
-/* PAGE */
-.page{{max-width:860px;margin:40px auto 80px;background:var(--white);border:1px solid var(--stone);border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.08),0 1px 4px rgba(0,0,0,.05);overflow:hidden}}
+.page{{max-width:900px;margin:32px auto 80px;background:var(--s1);border:1px solid var(--b1);border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}}
 
 /* REPORT HEADER */
-.rpt-header{{padding:40px 48px 32px;border-bottom:2px solid var(--blue);background:var(--white)}}
-.rpt-logo-row{{display:flex;align-items:center;gap:12px;margin-bottom:24px}}
-.rpt-logo-mark{{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#1e40af,#5b21b6);display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--mono);font-size:12px;font-weight:500}}
-.rpt-logo-name{{font-family:var(--serif);font-size:1.4rem;letter-spacing:-.01em}}
-.rpt-logo-sub{{font-family:var(--mono);font-size:.6rem;color:var(--ink3);margin-top:1px}}
-.rpt-title{{font-family:var(--serif);font-size:1.6rem;font-weight:400;letter-spacing:-.02em;margin-bottom:4px}}
-.rpt-subtitle{{font-family:var(--mono);font-size:.68rem;color:var(--ink3);margin-bottom:20px}}
-.rpt-meta-grid{{display:grid;grid-template-columns:1fr 1fr;gap:5px 32px}}
-.rpt-meta-row{{display:flex;gap:8px;font-size:.75rem}}
-.rpt-meta-label{{color:var(--ink3);font-family:var(--mono);width:110px;flex-shrink:0}}
-.rpt-meta-value{{color:var(--ink);font-family:var(--mono)}}
+.rpt-header{{padding:36px 40px;border-bottom:1px solid var(--b1)}}
+.rpt-org{{display:flex;align-items:center;gap:10px;margin-bottom:20px}}
+.rpt-mark{{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#fff}}
+.rpt-org-name{{font-family:var(--serif);font-size:1.15rem;font-weight:400;color:var(--t1)}}.rpt-org-sub{{font-family:var(--mono);font-size:.58rem;color:var(--t3);margin-top:1px}}
+.rpt-title{{font-family:var(--serif);font-size:1.9rem;font-weight:400;font-style:italic;letter-spacing:.01em;margin-bottom:6px}}
+.rpt-subtitle{{font-family:var(--mono);font-size:.62rem;color:var(--t3);margin-bottom:20px}}
+.rpt-meta-grid{{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px}}
+.rpt-meta{{display:flex;gap:8px;font-size:.72rem}}.rpt-meta-label{{font-family:var(--mono);font-size:.6rem;color:var(--t3);width:100px;flex-shrink:0}}.rpt-meta-val{{font-family:var(--mono);color:var(--t1)}}
 
 /* DECISION BANNER */
-.dec-banner{{margin:32px 48px;border-radius:12px;padding:24px 28px;display:flex;align-items:flex-start;gap:18px;border:1.5px solid {dec_border};background:{dec_bg}}}
-.dec-icon{{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;flex-shrink:0;border:2px solid {dec_col};color:{dec_col};background:{dec_bg}}}
-.dec-label{{font-family:var(--serif);font-size:1.9rem;font-weight:500;color:{dec_col};letter-spacing:-.02em;line-height:1;margin-bottom:5px}}
-.dec-conf{{font-family:var(--mono);font-size:.72rem;color:{dec_col};opacity:.85;margin-bottom:10px}}
-.dec-ids{{font-family:var(--mono);font-size:.62rem;color:{dec_col};opacity:.7}}
+.dec-banner{{margin:28px 40px;border-radius:12px;padding:22px 24px;border:1px solid {dec_border};background:{dec_bg};display:flex;align-items:flex-start;gap:16px}}
+.dec-icon{{width:48px;height:48px;border-radius:12px;border:1.5px solid {dec_col};color:{dec_col};display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;flex-shrink:0}}
+.dec-label{{font-family:var(--serif);font-size:2.4rem;font-weight:500;font-style:italic;color:{dec_col};line-height:1;margin-bottom:5px}}
+.dec-conf{{font-family:var(--mono);font-size:.65rem;color:{dec_col};opacity:.8;margin-bottom:6px}}
+.dec-id{{font-family:var(--mono);font-size:.58rem;color:{dec_col};opacity:.55}}
 
-/* QUICK STATS ROW */
-.qs-row{{margin:0 48px 32px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--stone);border:1px solid var(--stone);border-radius:12px;overflow:hidden}}
-.qs-cell{{background:var(--paper);padding:14px 16px;text-align:center}}
-.qs-val{{font-family:var(--serif);font-size:1.5rem;font-weight:500;line-height:1;color:var(--ink)}}
-.qs-label{{font-family:var(--mono);font-size:.58rem;color:var(--ink3);margin-top:3px;text-transform:uppercase;letter-spacing:.1em}}
+/* QUICK METRICS */
+.metrics-row{{margin:0 40px 28px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--b1);border:1px solid var(--b1);border-radius:10px;overflow:hidden}}
+.metric{{background:var(--s2);padding:14px 16px;text-align:center}}.metric-val{{font-family:var(--serif);font-size:1.8rem;font-weight:400;font-style:italic;line-height:1}}.metric-lbl{{font-family:var(--mono);font-size:.54rem;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-top:3px}}
 
-/* CODE CHIPS */
-.codes-section{{margin:0 48px 28px}}
-.codes-section-title{{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;display:flex;align-items:center;gap:8px}}
-.codes-section-title::after{{content:'';flex:1;height:1px;background:var(--stone)}}
-.chips-wrap{{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}}
-.meta-chip{{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--stone);border-radius:8px;padding:7px 11px}}
-.chip-code{{font-family:var(--mono);font-size:.82rem;font-weight:500;color:var(--blue)}}
-.chip-code.cpt{{color:var(--purple)}}
-.chip-desc{{font-size:.7rem;color:var(--ink2)}}
-.chip-conf{{font-family:var(--mono);font-size:.58rem;color:var(--ink3);background:var(--stone);padding:1px 6px;border-radius:3px}}
-.no-data{{font-family:var(--mono);font-size:.7rem;color:var(--ink3)}}
+/* STRUCTURED DATA SECTIONS */
+.data-section{{margin:0 40px 24px}}
+.ds-title{{font-family:var(--mono);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:10px;display:flex;align-items:center;gap:8px}}
+.ds-title::after{{content:'';flex:1;height:1px;background:var(--b1)}}
+.code-grid{{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}}
+.code-chip{{background:var(--s2);border:1px solid var(--b1);border-radius:7px;padding:8px 10px}}.code-chip.cpt .chip-code{{color:var(--purple)}}.code-chip.purple .chip-code{{color:var(--purple)}}
+.chip-code{{font-family:var(--mono);font-size:.8rem;font-weight:500;color:var(--blue);margin-bottom:2px}}.chip-desc{{font-size:.68rem;color:var(--t2);margin-bottom:3px}}.chip-conf{{font-family:var(--mono);font-size:.56rem;color:var(--t3)}}
+.no-data{{font-family:var(--mono);font-size:.65rem;color:var(--t3)}}.sub-label{{font-family:var(--mono);font-size:.56rem;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin:10px 0 6px}}
 
 /* RULES TABLE */
-.rules-section{{margin:0 48px 32px}}
-.rules-table{{width:100%;border-collapse:collapse;font-size:.78rem}}
-.rules-table th{{padding:9px 12px;text-align:left;font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--stone);background:var(--paper)}}
-.rules-table td{{padding:9px 12px;border-bottom:1px solid var(--paper);vertical-align:top}}
-.rule-id-cell{{font-family:var(--mono);font-size:.7rem;font-weight:500;white-space:nowrap}}
-.rule-status{{font-family:var(--mono);font-size:.65rem;font-weight:500;white-space:nowrap}}
-.rule-reason-cell{{color:var(--ink2);font-size:.74rem;line-height:1.5}}
-.rule-row-pass .rule-status{{color:#065f46}}
-.rule-row-fail .rule-status{{color:#991b1b}}
-.rule-row-warn .rule-status{{color:#78350f}}
-.rule-row-pass{{background:#fafffe}}
-.rule-row-fail{{background:#fff8f8}}
-.rule-row-warn{{background:#fffdf5}}
+.rules-table{{width:100%;border-collapse:collapse;font-size:.75rem}}
+.rules-table th{{padding:8px 10px;text-align:left;font-family:var(--mono);font-size:.54rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--b1);background:var(--s2)}}
+.rules-table td{{padding:9px 10px;border-bottom:1px solid var(--b1);vertical-align:top}}
+.rules-table tr:last-child td{{border:none}}
+.rule-id{{font-family:var(--mono);font-size:.68rem;font-weight:500;white-space:nowrap}}.rule-status{{font-family:var(--mono);font-size:.62rem;white-space:nowrap;font-weight:500}}.rule-reason{{font-size:.72rem;color:var(--t2);line-height:1.45}}
+tr.rule-pass .rule-status{{color:var(--green)}}tr.rule-fail .rule-status{{color:var(--red)}}tr.rule-warn .rule-status{{color:var(--amber)}}
+tr.rule-pass{{background:rgba(52,217,123,0.02)}}tr.rule-fail{{background:rgba(255,107,107,0.03)}}tr.rule-warn{{background:rgba(245,166,35,0.03)}}
+
+/* MOE */
+.moe-block{{background:rgba(166,127,255,0.04);border:1px solid rgba(166,127,255,0.15);border-radius:10px;overflow:hidden}}
+.moe-header{{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(166,127,255,0.1)}}
+.moe-consensus{{font-family:var(--mono);font-size:.65rem;font-weight:500;color:var(--t1);margin-bottom:2px}}.moe-experts-list{{font-family:var(--mono);font-size:.58rem;color:var(--t3)}}
+.moe-conf-avg{{font-family:var(--serif);font-size:1.5rem;font-style:italic;color:var(--purple);text-align:center}}
+.moe-expert{{padding:12px 14px;border-bottom:1px solid rgba(166,127,255,0.08)}}.moe-expert:last-of-type{{border:none}}
+.moe-expert-header{{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}}
+.moe-expert-name{{font-size:.78rem;font-weight:500;color:var(--t1);margin-bottom:2px}}.moe-expert-assess{{font-family:var(--mono);font-size:.62rem;color:var(--t3)}}
+.moe-risk{{font-family:var(--mono);font-size:.56rem;padding:2px 7px;border-radius:4px;border:1px solid;background:transparent}}.moe-conf{{font-family:var(--mono);font-size:.62rem;color:var(--t3)}}
+.moe-narr{{font-size:.74rem;color:var(--t2);line-height:1.65;margin:8px 0;padding:10px 12px;background:var(--s3);border-radius:7px;border-left:2px solid rgba(166,127,255,0.3)}}
+.moe-img-assess{{font-size:.72rem;color:rgba(107,143,255,.8);margin:6px 0;padding:7px 10px;background:rgba(107,143,255,0.05);border-radius:6px}}
+.moe-flags-wrap{{display:flex;flex-direction:column;gap:4px;margin:6px 0}}
+.moe-flag{{font-size:.7rem;color:rgba(255,150,100,.8);padding:4px 8px;background:rgba(255,107,107,0.05);border-radius:5px;border:1px solid rgba(255,107,107,0.12)}}
+.moe-flag.ok{{color:rgba(52,217,123,.7);background:rgba(52,217,123,0.05);border-color:rgba(52,217,123,0.15)}}
+.moe-rec{{font-size:.7rem;color:rgba(45,212,191,.75);padding:4px 8px}}
+.no-data-block{{font-family:var(--mono);font-size:.65rem;color:var(--t3);padding:12px;background:var(--s2);border-radius:7px}}
+
+/* PASSAGES */
+.passage-block{{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:12px 14px;margin-bottom:8px}}.passage-block:last-child{{margin:0}}
+.passage-source{{font-family:var(--mono);font-size:.62rem;color:var(--blue);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center}}
+.passage-rel{{color:var(--t3);font-size:.58rem}}.passage-content{{font-size:.72rem;color:var(--t2);line-height:1.6}}
 
 /* NARRATIVE BODY */
-.rpt-body{{padding:40px 48px}}
-.rpt-h2{{font-family:var(--serif);font-size:1.2rem;font-weight:500;letter-spacing:-.01em;color:var(--ink);margin:32px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--stone)}}
+.rpt-body{{padding:32px 40px;border-top:1px solid var(--b1)}}
+.rpt-h2{{font-family:var(--serif);font-size:1.15rem;font-weight:500;font-style:italic;letter-spacing:.01em;color:var(--t1);margin:28px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--b1)}}
 .rpt-h2:first-child{{margin-top:0}}
-.rpt-p{{font-size:.88rem;color:var(--ink2);line-height:1.8;margin-bottom:14px}}
-.rpt-p strong{{color:var(--ink);font-weight:600}}
-.rpt-p em{{font-style:italic;color:var(--ink)}}
-.rpt-p code{{font-family:var(--mono);font-size:.78rem;background:var(--paper);padding:1px 5px;border-radius:3px;border:1px solid var(--stone)}}
-.rpt-divider{{border:none;border-top:1px solid var(--stone);margin:24px 0}}
+.rpt-p{{font-size:.84rem;color:rgba(232,232,240,.8);line-height:1.85;margin-bottom:14px}}
+.rpt-p strong{{color:var(--t1);font-weight:600}}.rpt-p em{{font-style:italic;color:var(--t1)}}
+.rpt-p code{{font-family:var(--mono);font-size:.74rem;background:var(--s2);padding:1px 5px;border-radius:3px;border:1px solid var(--b1)}}
+.rpt-divider{{border:none;border-top:1px solid var(--b1);margin:20px 0}}
 
-/* SIGNATURE */
-.rpt-footer{{padding:28px 48px;border-top:1px solid var(--stone);background:var(--paper)}}
-.sig-grid{{display:grid;grid-template-columns:1fr 1fr;gap:10px}}
-.sig-field{{}}
-.sig-label{{font-family:var(--mono);font-size:.58rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}}
-.sig-value{{font-family:var(--mono);font-size:.7rem;color:var(--ink)}}
-.sig-note{{font-size:.72rem;color:var(--ink3);line-height:1.6;margin-top:14px;padding-top:14px;border-top:1px solid var(--stone);font-style:italic}}
-
-::-webkit-scrollbar{{width:4px}}::-webkit-scrollbar-thumb{{background:var(--ash);border-radius:2px}}
+/* FOOTER */
+.rpt-footer{{padding:24px 40px;border-top:1px solid var(--b1);background:var(--s2)}}
+.footer-grid{{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-bottom:14px}}
+.footer-field{{display:flex;gap:8px;font-size:.7rem}}.footer-label{{font-family:var(--mono);font-size:.58rem;color:var(--t3);width:110px;flex-shrink:0}}.footer-val{{font-family:var(--mono);color:var(--t2)}}
+.footer-note{{font-size:.68rem;color:var(--t3);line-height:1.6;padding-top:12px;border-top:1px solid var(--b1)}}
+::-webkit-scrollbar{{width:3px}}::-webkit-scrollbar-thumb{{background:#222235}}
 </style>
 </head>
 <body>
-
-<div class="toolbar no-print">
-  <a class="tb-brand" href="index.html">
-    <div class="tb-logo">Rx</div>
-    <div><div class="tb-name">ClaimIQ</div><div class="tb-sub">Clinical Adjudication Report</div></div>
-  </a>
+<div class="toolbar">
+  <a class="tb-brand" href="index.html"><div class="tb-mark">Rx</div><div class="tb-name">ClaimIQ — Clinical Report</div></a>
   <div class="tb-right">
     <button class="btn-print" onclick="window.print()">🖨 Print / Save PDF</button>
     <button class="btn-close" onclick="window.close()">✕ Close</button>
@@ -931,83 +1018,94 @@ body::after{{content:'';position:fixed;inset:0;z-index:-1;background-image:radia
 </div>
 
 <div class="page">
-
-  <!-- Report Header -->
+  <!-- Header -->
   <div class="rpt-header">
-    <div class="rpt-logo-row">
-      <div class="rpt-logo-mark">Rx</div>
-      <div><div class="rpt-logo-name">ClaimIQ</div><div class="rpt-logo-sub">Healthcare Claims Adjudication Agent — Clinical Report</div></div>
+    <div class="rpt-org">
+      <div class="rpt-mark">Rx</div>
+      <div><div class="rpt-org-name">ClaimIQ</div><div class="rpt-org-sub">Healthcare Claims Adjudication Agent · AI Audit Division</div></div>
     </div>
     <div class="rpt-title">Clinical Adjudication Report</div>
-    <div class="rpt-subtitle">AI-generated — for clinical and administrative review</div>
+    <div class="rpt-subtitle">AI-Generated · For clinical and administrative review only</div>
     <div class="rpt-meta-grid">
-      <div class="rpt-meta-row"><span class="rpt-meta-label">Report Generated</span><span class="rpt-meta-value">{generated_at.strftime('%Y-%m-%d %H:%M:%S UTC')}</span></div>
-      <div class="rpt-meta-row"><span class="rpt-meta-label">Claim ID</span><span class="rpt-meta-value">{claim_id}</span></div>
-      <div class="rpt-meta-row"><span class="rpt-meta-label">Audit Trace</span><span class="rpt-meta-value">{trace_id}</span></div>
-      <div class="rpt-meta-row"><span class="rpt-meta-label">Insurance Plan</span><span class="rpt-meta-value">{plan.upper()}</span></div>
-      <div class="rpt-meta-row"><span class="rpt-meta-label">Decided At</span><span class="rpt-meta-value">{data.get('decided_at','—')[:19].replace('T',' ')} UTC</span></div>
-      <div class="rpt-meta-row"><span class="rpt-meta-label">Pipeline Version</span><span class="rpt-meta-value">{data.get('pipeline_version','1.0.0')}</span></div>
+      <div class="rpt-meta"><span class="rpt-meta-label">Report Generated</span><span class="rpt-meta-val">{generated_at.strftime('%Y-%m-%d %H:%M:%S')} UTC</span></div>
+      <div class="rpt-meta"><span class="rpt-meta-label">Claim ID</span><span class="rpt-meta-val">{claim_id}</span></div>
+      <div class="rpt-meta"><span class="rpt-meta-label">Audit Trace</span><span class="rpt-meta-val">{trace_id}</span></div>
+      <div class="rpt-meta"><span class="rpt-meta-label">Insurance Plan</span><span class="rpt-meta-val">{plan.upper()}</span></div>
+      <div class="rpt-meta"><span class="rpt-meta-label">Decided At</span><span class="rpt-meta-val">{data.get('decided_at','—')[:19].replace('T',' ')} UTC</span></div>
+      <div class="rpt-meta"><span class="rpt-meta-label">LLM Provider</span><span class="rpt-meta-val">{provider.upper()}</span></div>
     </div>
   </div>
 
   <!-- Decision Banner -->
   <div class="dec-banner">
-    <div class="dec-icon">{'✓' if dec=='approved' else ('✗' if dec=='rejected' else '!')}</div>
+    <div class="dec-icon">{"✓" if dec=="approved" else ("✗" if dec=="rejected" else "!")}</div>
     <div>
       <div class="dec-label">{dec_label}</div>
-      <div class="dec-conf">{conf:.1%} overall confidence · {len(rules)} rules evaluated · {len(icd)} ICD-10 · {len(cpt)} CPT · {len(edges)} edge cases</div>
-      <div class="dec-ids">{claim_id} · {trace_id}</div>
+      <div class="dec-conf">{conf:.1%} overall confidence · {len(rules)} rules evaluated · {len(icd)} ICD-10 · {len(cpt)} CPT · {len(edges)} anomalies</div>
+      <div class="dec-id">{claim_id} · {trace_id}</div>
     </div>
   </div>
 
-  <!-- Quick Stats -->
-  <div class="qs-row">
-    <div class="qs-cell"><div class="qs-val">{conf:.0%}</div><div class="qs-label">Confidence</div></div>
-    <div class="qs-cell"><div class="qs-val">{len(rules)}</div><div class="qs-label">Rules</div></div>
-    <div class="qs-cell"><div class="qs-val">{len(icd) + len(cpt)}</div><div class="qs-label">Codes</div></div>
-    <div class="qs-cell"><div class="qs-val">{len(edges)}</div><div class="qs-label">Anomalies</div></div>
+  <!-- Metrics -->
+  <div class="metrics-row">
+    <div class="metric"><div class="metric-val" style="color:var(--blue)">{conf:.0%}</div><div class="metric-lbl">Confidence</div></div>
+    <div class="metric"><div class="metric-val" style="color:{"var(--green)" if len(blocking)==0 else "var(--red)"}">{len(rules)}</div><div class="metric-lbl">Rules</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--purple)">{len(icd)+len(cpt)}</div><div class="metric-lbl">Codes</div></div>
+    <div class="metric"><div class="metric-val" style="color:{"var(--amber)" if edges else "var(--green)"}">{len(edges)}</div><div class="metric-lbl">Anomalies</div></div>
   </div>
 
   <!-- Codes -->
-  <div class="codes-section">
-    <div class="codes-section-title">ICD-10-CM Diagnoses</div>
-    <div class="chips-wrap">{icd_chips}</div>
-    <div class="codes-section-title">CPT Procedures</div>
-    <div class="chips-wrap">{cpt_chips}</div>
+  <div class="data-section">
+    <div class="ds-title">ICD-10-CM Diagnoses</div>
+    <div class="code-grid">{icd_chips}</div>
+    <div class="ds-title">CPT Procedures</div>
+    <div class="code-grid">{cpt_chips}</div>
   </div>
 
-  <!-- Rules Table -->
-  <div class="rules-section">
-    <div class="codes-section-title">Policy Rule Evaluations</div>
+  <!-- Rules -->
+  <div class="data-section">
+    <div class="ds-title">Policy Rule Evaluations ({len(passing)} pass · {len(blocking)} block · {len(warning)} warn)</div>
     <table class="rules-table">
       <thead><tr><th>Rule ID</th><th>Status</th><th>Reason</th></tr></thead>
       <tbody>{rule_rows}</tbody>
     </table>
   </div>
 
-  <!-- Narrative Body (LLM or rule-based) -->
+  <!-- MoE -->
+  <div class="data-section">
+    <div class="ds-title">Mixture of Experts Analysis</div>
+    {moe_section}
+  </div>
+
+  <!-- Guideline Passages -->
+  <div class="data-section">
+    <div class="ds-title">Clinical Guideline Evidence (RAG Retrieval)</div>
+    {passages_html}
+  </div>
+
+  <!-- AI Narrative -->
   <div class="rpt-body">
     {narrative_html}
   </div>
 
-  <!-- Footer / Signature -->
+  <!-- Footer -->
   <div class="rpt-footer">
-    <div class="sig-grid">
-      <div class="sig-field"><div class="sig-label">Generated By</div><div class="sig-value">ClaimIQ Adjudication Agent v1.0</div></div>
-      <div class="sig-field"><div class="sig-label">Report ID</div><div class="sig-value">RPT-{claim_id}-{generated_at.strftime('%Y%m%d%H%M%S')}</div></div>
-      <div class="sig-field"><div class="sig-label">Decision</div><div class="sig-value">{dec_label} at {conf:.1%}</div></div>
-      <div class="sig-field"><div class="sig-label">PHI Status</div><div class="sig-value">TOKENIZED — No PHI in report</div></div>
-      <div class="sig-field"><div class="sig-label">Audit Trace</div><div class="sig-value">{trace_id}</div></div>
-      <div class="sig-field"><div class="sig-label">Claim ID</div><div class="sig-value">{claim_id}</div></div>
+    <div class="footer-grid">
+      <div class="footer-field"><span class="footer-label">Generated By</span><span class="footer-val">ClaimIQ Adjudication Agent v1.0</span></div>
+      <div class="footer-field"><span class="footer-label">Report ID</span><span class="footer-val">RPT-{claim_id}-{generated_at.strftime('%Y%m%d%H%M%S')}</span></div>
+      <div class="footer-field"><span class="footer-label">Decision</span><span class="footer-val">{dec_label} · {conf:.1%}</span></div>
+      <div class="footer-field"><span class="footer-label">PHI Status</span><span class="footer-val">TOKENIZED — No PHI in report</span></div>
+      <div class="footer-field"><span class="footer-label">Audit Trace</span><span class="footer-val">{trace_id}</span></div>
+      <div class="footer-field"><span class="footer-label">LLM Provider</span><span class="footer-val">{provider.upper()}</span></div>
     </div>
-    <div class="sig-note">
-      This report was generated automatically by the ClaimIQ Healthcare Claims Adjudication Agent. The narrative sections
-      {'were written by the configured LLM (' + os.environ.get('LLM_PROVIDER','rules') + ') based on the structured adjudication data.' if os.environ.get('LLM_PROVIDER','rules') != 'rules' else 'were generated using rule-based narrative templates. For richer AI-written explanations, configure LLM_PROVIDER=groq or gemini in .env.'}
-      All patient identifiers have been replaced with cryptographic vault tokens — no Protected Health Information (PHI) is present
-      in this document. This report is for adjudication purposes only and does not constitute medical advice.
+    <div class="footer-note">
+      This report was generated automatically by the ClaimIQ Healthcare Claims Adjudication Agent.
+      {"The narrative was written by the " + provider.upper() + " language model based on structured adjudication data." if provider != "rules" else "The narrative was generated using rule-based templates. Configure LLM_PROVIDER=groq for AI-written narratives."}
+      All patient identifiers have been replaced with cryptographic vault tokens — no PHI is present.
+      This report is for adjudication purposes only and does not constitute medical advice.
+      Any clinical decisions must be reviewed by qualified healthcare professionals.
     </div>
   </div>
-
 </div>
 </body>
 </html>"""
