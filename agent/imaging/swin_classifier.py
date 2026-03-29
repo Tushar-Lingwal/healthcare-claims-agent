@@ -50,7 +50,7 @@ ICD10_MAP = {
     "Pituitary":           {"code": "D35.2",  "desc": "Benign neoplasm of pituitary gland"},
 }
 
-TIMEOUT = httpx.Timeout(90.0, connect=10.0)  # HF Spaces can have 60s cold start
+TIMEOUT = httpx.Timeout(120.0, connect=15.0)  # HF Spaces cold start can be 90s+
 
 
 async def classify_mri_image(
@@ -76,45 +76,101 @@ async def classify_mri_image(
 
 async def _call_gradio_api(image_bytes: bytes, filename: str) -> dict:
     """
-    Calls the Gradio /run/predict endpoint.
-    Gradio's REST API wraps inputs/outputs in a specific JSON envelope.
+    Calls the HuggingFace Space Gradio API.
+    Tries multiple endpoint formats for compatibility with Gradio 4.x and 5.x/6.x.
     """
-    # Encode image as base64 data URL for Gradio
     ext  = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
-    mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
-            "png": "image/png", "gif": "image/gif"}.get(ext, "image/jpeg")
-    b64  = base64.b64encode(image_bytes).decode()
+    mime = {"jpg":"image/jpeg","jpeg":"image/jpeg",
+            "png":"image/png","gif":"image/gif"}.get(ext,"image/jpeg")
+    b64      = base64.b64encode(image_bytes).decode()
     data_url = f"data:{mime};base64,{b64}"
 
-    payload = {
-        "data": [{"path": data_url, "meta": {"_type": "gradio.FileData"}}]
-    }
-
-    url = f"{HF_SPACE_URL}/run/predict"
-    logger.info(f"Calling HF Space: {url}")
-
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        resp = await client.post(url, json=payload)
-        resp.raise_for_status()
-        body = resp.json()
 
-    # Gradio wraps result in {"data": ["json_string"]}
-    raw = body.get("data", [None])[0]
-    if raw is None:
-        raise ValueError(f"Empty response from Space: {body}")
+        # ── Attempt 1: Gradio 5/6 new API format (/run/predict with fn_index) ──
+        try:
+            url     = f"{HF_SPACE_URL}/run/predict"
+            payload = {"data": [data_url], "fn_index": 0}
+            logger.info(f"Attempt 1 (Gradio 5/6 simple): {url}")
+            resp = await client.post(url, json=payload)
+            if resp.status_code == 200:
+                body = resp.json()
+                raw  = body.get("data", [None])[0]
+                if raw:
+                    result = json.loads(raw) if isinstance(raw, str) else raw
+                    if "predicted_class" in result:
+                        return result
+        except Exception as e:
+            logger.debug(f"Attempt 1 failed: {e}")
 
-    # Parse the JSON string returned by our predict function
-    if isinstance(raw, str):
-        result = json.loads(raw)
-    elif isinstance(raw, dict):
-        result = raw
-    else:
-        raise ValueError(f"Unexpected response type: {type(raw)}")
+        # ── Attempt 2: Gradio FileData format ──────────────────────────────────
+        try:
+            url     = f"{HF_SPACE_URL}/run/predict"
+            payload = {"data": [{"path": data_url, "meta": {"_type": "gradio.FileData"}}]}
+            logger.info(f"Attempt 2 (FileData format): {url}")
+            resp = await client.post(url, json=payload)
+            if resp.status_code == 200:
+                body = resp.json()
+                raw  = body.get("data", [None])[0]
+                if raw:
+                    result = json.loads(raw) if isinstance(raw, str) else raw
+                    if "predicted_class" in result:
+                        return result
+        except Exception as e:
+            logger.debug(f"Attempt 2 failed: {e}")
 
-    if "error" in result:
-        raise ValueError(result["error"])
+        # ── Attempt 3: Gradio 6 /call/ API ────────────────────────────────────
+        try:
+            url     = f"{HF_SPACE_URL}/call/predict"
+            payload = {"data": [data_url]}
+            logger.info(f"Attempt 3 (Gradio 6 /call/ API): {url}")
+            resp = await client.post(url, json=payload)
+            if resp.status_code == 200:
+                event_id = resp.json().get("event_id")
+                if event_id:
+                    result_url = f"{HF_SPACE_URL}/call/predict/{event_id}"
+                    for _ in range(20):  # poll up to 20 times
+                        await asyncio.sleep(0.5)
+                        poll = await client.get(result_url)
+                        if poll.status_code == 200:
+                            text = poll.text
+                            # SSE format: look for data: line
+                            for line in text.splitlines():
+                                if line.startswith("data:"):
+                                    data_json = line[5:].strip()
+                                    parsed = json.loads(data_json)
+                                    if isinstance(parsed, list) and parsed:
+                                        raw = parsed[0]
+                                        result = json.loads(raw) if isinstance(raw, str) else raw
+                                        if "predicted_class" in result:
+                                            return result
+        except Exception as e:
+            logger.debug(f"Attempt 3 failed: {e}")
 
-    return result
+        # ── Attempt 4: Direct multipart upload ────────────────────────────────
+        try:
+            url = f"{HF_SPACE_URL}/run/predict"
+            # Upload file first
+            upload_url = f"{HF_SPACE_URL}/upload"
+            files = {"files": (filename, image_bytes, mime)}
+            upload_resp = await client.post(upload_url, files=files)
+            if upload_resp.status_code == 200:
+                file_paths = upload_resp.json()
+                file_path  = file_paths[0] if isinstance(file_paths, list) else file_paths
+                payload    = {"data": [{"path": file_path, "orig_name": filename, "meta": {"_type": "gradio.FileData"}}]}
+                logger.info(f"Attempt 4 (upload+predict): {url}")
+                resp = await client.post(url, json=payload)
+                if resp.status_code == 200:
+                    body = resp.json()
+                    raw  = body.get("data", [None])[0]
+                    if raw:
+                        result = json.loads(raw) if isinstance(raw, str) else raw
+                        if "predicted_class" in result:
+                            return result
+        except Exception as e:
+            logger.debug(f"Attempt 4 failed: {e}")
+
+    raise ValueError(f"All Gradio API formats failed for {HF_SPACE_URL}")
 
 
 def _fallback_result(error_msg: str) -> dict:
@@ -137,7 +193,7 @@ def get_space_status() -> dict:
     """Synchronous health check for the HF Space (used in /health endpoint)."""
     import httpx as _httpx
     try:
-        resp = _httpx.get(f"{HF_SPACE_URL}/info", timeout=8.0)
+        resp = _httpx.get(f"{HF_SPACE_URL}/", timeout=12.0)
         if resp.status_code == 200:
             return {"status": "online", "url": HF_SPACE_URL}
         return {"status": "degraded", "code": resp.status_code}

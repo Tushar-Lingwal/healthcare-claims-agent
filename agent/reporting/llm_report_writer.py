@@ -298,6 +298,64 @@ For imaging: Explain what the model found, how confident it was, and whether it 
 Write the complete professional report now:"""
 
 
+def _call_groq(prompt: str, system: str) -> Optional[str]:
+    try:
+        from groq import Groq
+        client = Groq(api_key=os.environ.get("GROQ_API_KEY",""))
+        model  = os.environ.get("GROQ_MODEL","llama-3.3-70b-versatile")
+        resp   = client.chat.completions.create(
+            model=model, max_tokens=4096, temperature=0.2,
+            messages=[{"role":"system","content":system},{"role":"user","content":prompt}]
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        logger.warning(f"Groq failed: {e}")
+        return None
+
+def _call_gemini(prompt: str, system: str) -> Optional[str]:
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=os.environ.get("GEMINI_API_KEY",""))
+        model = genai.GenerativeModel(
+            model_name=os.environ.get("GEMINI_MODEL","gemini-1.5-flash"),
+            system_instruction=system,
+        )
+        resp = model.generate_content(prompt,
+            generation_config={"temperature":0.2,"max_output_tokens":4096})
+        return resp.text.strip()
+    except Exception as e:
+        logger.warning(f"Gemini failed: {e}")
+        return None
+
+def _call_anthropic(prompt: str, system: str) -> Optional[str]:
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY",""))
+        resp = client.messages.create(
+            model=os.environ.get("ANTHROPIC_MODEL","claude-sonnet-4-6"),
+            max_tokens=4096, system=system,
+            messages=[{"role":"user","content":prompt}]
+        )
+        return resp.content[0].text.strip()
+    except Exception as e:
+        logger.warning(f"Anthropic failed: {e}")
+        return None
+
+def _call_openai(prompt: str, system: str) -> Optional[str]:
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY",""))
+        resp = client.chat.completions.create(
+            model=os.environ.get("OPENAI_MODEL","gpt-4o-mini"),
+            max_tokens=4096, temperature=0.2,
+            messages=[{"role":"system","content":system},{"role":"user","content":prompt}]
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        logger.warning(f"OpenAI failed: {e}")
+        return None
+
+
 def generate_llm_narrative(data: dict) -> Optional[str]:
     """
     Calls the configured LLM to generate a full narrative report.
