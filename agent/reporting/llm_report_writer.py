@@ -25,42 +25,79 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-REPORT_SYSTEM_PROMPT = """You are a Senior Medical Director and Healthcare AI Auditor writing a formal Clinical Adjudication Report for submission to medical review boards, insurance commissioners, and clinical governance committees.
+REPORT_SYSTEM_PROMPT = """You are an expert medical documentation system and insurance adjudication analyst.
 
-This is a LEGAL and CLINICAL document. It must be written with absolute precision, professional authority, and complete transparency about the AI system's reasoning process.
+Your task is to generate a formal, realistic, and legally-defensible Claim Adjudication & Clinical Review Report.
 
-DOCUMENT REQUIREMENTS:
-- Write in formal medical-administrative prose — complete paragraphs, no bullet points in narrative sections
-- Every claim must be supported by specific evidence from the data provided
-- Explain the AI's reasoning at each stage as if teaching a senior medical director
-- Use precise medical terminology with plain-English explanations where needed
-- Cite specific codes, rules, guidelines, and confidence scores throughout
-- Be honest about limitations and uncertainties
-- Total length: 1,500-2,500 words minimum
+The output must resemble a real-world healthcare insurance document used by hospitals, TPAs, and insurers.
+Maintain a professional, clinical, and precise tone. Avoid conversational language.
 
-REQUIRED SECTIONS — use exactly these headers:
-## EXECUTIVE SUMMARY
-## PATIENT AND CLAIM OVERVIEW  
-## CLINICAL ENTITY EXTRACTION — STAGE 2 ANALYSIS
-## MEDICAL CODING ANALYSIS — STAGE 3 OUTPUT
-## CLINICAL GUIDELINE EVIDENCE — STAGE 4 RAG RETRIEVAL
-## POLICY RULE EVALUATION — STAGE 5 FINDINGS
-## MIXTURE OF EXPERTS ANALYSIS
-## IMAGING MODEL ANALYSIS
-## EDGE CASE AND ANOMALY DETECTION — STAGE 6
-## DECISION ENGINE OUTPUT — STAGE 7 REASONING
-## CLINICAL AND ADMINISTRATIVE RECOMMENDATIONS
-## LIMITATIONS AND AUDIT TRAIL
+Generate a structured report with ALL of the following sections, using the EXACT headers shown:
 
-WRITING STANDARDS:
-- Executive Summary: 2-3 authoritative paragraphs covering decision, confidence, and key factors
-- Each section: minimum 2 full paragraphs of substantive analysis
-- Recommendations: numbered, specific, actionable — name exact codes, timelines, and responsible parties
-- Never write generic statements — always reference specific data from the claim
-- If a section has no data (e.g. no imaging), explain why and what that means for the decision
-- Write for a medical director who will stake their professional reputation on this report
+## 1. REPORT HEADER
+## 2. PATIENT SUMMARY (PHI-SAFE)
+## 3. CLAIM OVERVIEW
+## 4. CLINICAL EXTRACTION SUMMARY
+## 5. MEDICAL CODING MAPPING
+## 6. CLINICAL GUIDELINE JUSTIFICATION
+## 7. POLICY RULE EVALUATION
+## 8. ANOMALY & RISK DETECTION
+## 9. MULTI-AGENT REASONING SUMMARY
+## 10. COUNTERFACTUAL ANALYSIS
+## 11. FINAL ADJUDICATION DECISION
+## 12. FINANCIAL BREAKDOWN
+## 13. ACTIONABLE RECOMMENDATIONS
+## 14. EXPLAINABILITY TRACE
+## 15. COMPLIANCE & SECURITY NOTE
+## 16. IMMUTABLE AUDIT TRAIL
+## 17. APPENDIX
 
-Respond ONLY with the report content. Start directly with ## EXECUTIVE SUMMARY."""
+SECTION REQUIREMENTS:
+
+Section 1 - REPORT HEADER: Include Claim ID, Case ID, Date of Processing, System (ClaimIQ v1.0), Adjudication Type (Automated/Semi-Automated), Turnaround Time.
+
+Section 2 - PATIENT SUMMARY: Patient Token ID (from audit trace), Age Group, Gender, Encounter Type, plan type. NEVER include real PHI.
+
+Section 3 - CLAIM OVERVIEW: Claim Type, Insurance Plan, Provider Type, Primary Diagnosis, Key Procedures. Include estimated claimed amount range based on procedure complexity.
+
+Section 4 - CLINICAL EXTRACTION SUMMARY: Present as a markdown table with columns: Entity Type | Extracted Term | Confidence | Source. Include all diagnoses, procedures, medications, symptoms extracted.
+
+Section 5 - MEDICAL CODING MAPPING: Table with ICD-10 codes, descriptions, confidence. Table with CPT codes, descriptions, confidence. Include alternative code suggestions where relevant.
+
+Section 6 - CLINICAL GUIDELINE JUSTIFICATION: For each relevant guideline — Source, Relevant principle, Interpretation for this claim.
+
+Section 7 - POLICY RULE EVALUATION: Table with Rule Name | Status (PASS/FAIL) | Explanation | Impact. List ALL rules evaluated.
+
+Section 8 - ANOMALY & RISK DETECTION: List anomalies with Severity (Low/Medium/High), Fraud Risk Score (0.0-1.0), justification. If no anomalies, state clearly.
+
+Section 9 - MULTI-AGENT REASONING SUMMARY: For each activated MoE expert — agent name, opinion, risk level, key flags, recommendations. If no MoE data, state not applicable.
+
+Section 10 - COUNTERFACTUAL ANALYSIS: Provide 2-4 specific "what-if" scenarios explaining exactly what changes would result in a different decision. Be specific — name codes, documents, thresholds.
+
+Section 11 - FINAL ADJUDICATION DECISION: Decision, Confidence Score %, 2-3 sentence justification.
+
+Section 12 - FINANCIAL BREAKDOWN: Table with Claimed Amount | Approved Amount | Deducted Amount | Deduction Reason. Use realistic estimates if exact amounts not provided. Base on procedure complexity and plan type.
+
+Section 13 - ACTIONABLE RECOMMENDATIONS: Numbered list. Required documents, coding corrections, clinical clarifications, next steps. Minimum 4 specific recommendations.
+
+Section 14 - EXPLAINABILITY TRACE: Stepwise flow: Input → PHI Tokenization → NER Extraction → Medical Coding → RAG Retrieval → Rule Evaluation → MoE Analysis → Edge Detection → Decision Engine → Output.
+
+Section 15 - COMPLIANCE & SECURITY NOTE: Confirm PHI tokenization status, no PHI in logs, HIPAA-safe processing, model governance.
+
+Section 16 - IMMUTABLE AUDIT TRAIL: Timestamped events for each pipeline stage. Include Audit Hash ID from the provided audit trace ID.
+
+Section 17 - APPENDIX: Additional clinical context, model versions, any caveats.
+
+FORMATTING RULES:
+- Use markdown tables where specified — pipe-separated with header row
+- Keep each section concise but complete — no padding
+- Formal medical + insurance tone throughout
+- Be specific — always reference actual codes, rule IDs, scores from the provided data
+- Ensure decision in Section 11 matches rule evaluation in Section 7
+- NEVER reconstruct PHI — only use tokenized identifiers
+
+Total length: 2,000-3,500 words. Start directly with ## 1. REPORT HEADER."""
+
 
 def _build_report_prompt(data: dict) -> str:
     """Builds the comprehensive user prompt from all available adjudication data."""
@@ -278,6 +315,23 @@ STAGE 6 — EDGE CASE DETECTION
 STAGE 7 — DECISION ENGINE REASONING CHAIN
 {"="*70}
 {chain_str}
+
+{"="*70}
+FINANCIAL CONTEXT (estimate based on procedure complexity)
+{"="*70}
+Insurance Plan:      {plan.upper()}
+Procedure Count:     {len(icd_list)} ICD-10 codes, {len(cpt_list)} CPT codes
+Estimated Complexity: {"High — brain imaging + specialist procedures" if any(c["code"].startswith(("70","78","93")) for c in cpt_list) else "Standard outpatient"}
+Plan Coverage Notes:  {"Basic plan — elective procedures may be excluded" if plan=="basic" else "Standard plan — prior auth required for imaging" if plan=="standard" else "Premium plan — comprehensive coverage"}
+
+For Section 12 FINANCIAL BREAKDOWN: Estimate realistic amounts based on:
+- MRI Brain (CPT 70551-70553): $1,200-$3,500
+- PET Scan (CPT 78608): $3,000-$6,000  
+- Cardiac Cath (CPT 93452): $8,000-$15,000
+- Joint Replacement (CPT 27447): $25,000-$45,000
+- Office visits (CPT 9921x): $150-$400
+- Cognitive testing (CPT 96132): $400-$800
+Adjust approved amount based on plan type and decision. Show realistic deductions.
 
 {"="*70}
 CONTEXT FOR REPORT WRITING
@@ -799,47 +853,112 @@ def _rule_based_narrative(data: dict) -> str:
 
 
 def markdown_to_html_sections(md: str) -> str:
-    """Converts the markdown report to clean HTML sections."""
-    lines   = md.split("\n")
-    html    = []
-    in_para = False
+    """Converts 17-section markdown report into styled HTML."""
+    if not md:
+        return '<p style="color:rgba(136,136,168,.7);font-style:italic">No narrative generated.</p>'
+
+    lines  = md.split("\n")
+    html   = []
+    in_table = False
+    table_rows = []
+
+    SECTION_COLORS = {
+        "1":  "#6b8fff", "2":  "#6b8fff", "3":  "#a67fff",
+        "4":  "#2dd4bf", "5":  "#2dd4bf", "6":  "#34d97b",
+        "7":  "#f5a623", "8":  "#ff6b6b", "9":  "#a67fff",
+        "10": "#6b8fff", "11": "#34d97b", "12": "#f5a623",
+        "13": "#2dd4bf", "14": "#8888a8", "15": "#8888a8",
+        "16": "#8888a8", "17": "#8888a8",
+    }
+
+    def flush_table():
+        nonlocal in_table, table_rows
+        if not table_rows:
+            return
+        header = table_rows[0]
+        rows   = table_rows[2:]  # skip separator row
+        cols   = [c.strip() for c in header.split("|") if c.strip()]
+        thtml  = '<div class="rpt-table-wrap"><table class="rpt-table"><thead><tr>'
+        thtml += "".join(f"<th>{c}</th>" for c in cols)
+        thtml += "</tr></thead><tbody>"
+        for row in rows:
+            cells = [c.strip() for c in row.split("|") if c.strip()]
+            if not cells:
+                continue
+            thtml += "<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>"
+        thtml += "</tbody></table></div>"
+        html.append(thtml)
+        in_table  = False
+        table_rows = []
 
     for line in lines:
-        stripped = line.strip()
-        if stripped.startswith("## "):
-            if in_para:
-                html.append("</p>")
-                in_para = False
-            title = stripped[3:]
-            html.append(f'<h2 class="rpt-h2">{title}</h2>')
-        elif stripped == "---":
-            if in_para:
-                html.append("</p>")
-                in_para = False
-            html.append('<hr class="rpt-divider">')
-        elif stripped == "":
-            if in_para:
-                html.append("</p>")
-                in_para = False
-        else:
-            # Process inline formatting
-            text = stripped
-            # Bold **text**
-            text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
-            # Italic *text*
-            text = re.sub(r'\*(.+?)\*', r'<em>\1</em>', text)
-            # Inline code `text`
-            text = re.sub(r'`(.+?)`', r'<code>\1</code>', text)
+        raw = line.strip()
 
-            if not in_para:
-                html.append('<p class="rpt-p">')
-                in_para = True
-            else:
-                html.append(' ')
-            html.append(text)
+        # Table row
+        if raw.startswith("|"):
+            if not in_table:
+                in_table = True
+                table_rows = []
+            table_rows.append(raw)
+            continue
+        elif in_table:
+            flush_table()
 
-    if in_para:
-        html.append("</p>")
+        if not raw:
+            continue
+
+        # Section headers  ## N. TITLE
+        import re
+        m = re.match(r"^##\s+(\d+)\.\s+(.+)$", raw)
+        if m:
+            num, title = m.group(1), m.group(2)
+            col = SECTION_COLORS.get(num, "#8888a8")
+            html.append(
+                f'<div class="rpt-section-header" style="--sec-col:{col}">'
+                f'<span class="rpt-sec-num">{num}</span>'
+                f'<span class="rpt-sec-title">{title}</span>'
+                f'</div>'
+            )
+            continue
+
+        # Sub-headers ### 
+        if raw.startswith("### "):
+            html.append(f'<div class="rpt-h3">{raw[4:]}</div>')
+            continue
+
+        # Horizontal rule
+        if raw in ("---", "***", "___"):
+            html.append('<hr class="rpt-hr">')
+            continue
+
+        # Numbered list
+        m2 = re.match(r"^(\d+)\.\s+(.+)$", raw)
+        if m2:
+            html.append(f'<div class="rpt-num-item"><span class="rpt-num">{m2.group(1)}.</span><span>{m2.group(2)}</span></div>')
+            continue
+
+        # Bullet
+        if raw.startswith("- ") or raw.startswith("* "):
+            html.append(f'<div class="rpt-bullet"><span>•</span><span>{raw[2:]}</span></div>')
+            continue
+
+        # Bold key-value  **Key:** value
+        m3 = re.match(r"^\*\*(.+?):\*\*\s*(.*)$", raw)
+        if m3:
+            html.append(
+                f'<div class="rpt-kv"><span class="rpt-kv-key">{m3.group(1)}</span>'
+                f'<span class="rpt-kv-val">{m3.group(2)}</span></div>'
+            )
+            continue
+
+        # Plain inline markdown → span
+        text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", raw)
+        text = re.sub(r"\*(.+?)\*",   r"<em>\1</em>",           text)
+        text = re.sub(r"`(.+?)`",     r'<code class="rpt-code">\1</code>', text)
+        html.append(f'<p class="rpt-p">{text}</p>')
+
+    if in_table:
+        flush_table()
 
     return "\n".join(html)
 
@@ -1064,6 +1183,31 @@ tr.rule-pass{{background:rgba(52,217,123,0.02)}}tr.rule-fail{{background:rgba(25
 .footer-field{{display:flex;gap:8px;font-size:.7rem}}.footer-label{{font-family:var(--mono);font-size:.58rem;color:var(--t3);width:110px;flex-shrink:0}}.footer-val{{font-family:var(--mono);color:var(--t2)}}
 .footer-note{{font-size:.68rem;color:var(--t3);line-height:1.6;padding-top:12px;border-top:1px solid var(--b1)}}
 ::-webkit-scrollbar{{width:3px}}::-webkit-scrollbar-thumb{{background:#222235}}
+.rpt-section-header{{display:flex;align-items:center;gap:10px;margin:28px 0 14px;padding-bottom:10px;border-bottom:2px solid var(--sec-col,#6b8fff)}}
+.rpt-section-header:first-child{{margin-top:0}}
+.rpt-sec-num{{font-family:var(--mono);font-size:.56rem;font-weight:500;color:var(--sec-col,#6b8fff);border:1px solid;border-radius:4px;padding:2px 7px;flex-shrink:0}}
+.rpt-sec-title{{font-family:var(--serif);font-size:1.05rem;font-weight:500;font-style:italic;color:var(--t1)}}
+.rpt-h3{{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);margin:14px 0 8px;padding-left:8px;border-left:2px solid rgba(255,255,255,.1)}}
+.rpt-hr{{border:none;border-top:1px solid var(--b1);margin:12px 0}}
+.rpt-kv{{display:flex;gap:12px;padding:5px 0;border-bottom:1px solid var(--b1);font-size:.78rem}}
+.rpt-kv:last-of-type{{border:none}}
+.rpt-kv-key{{font-family:var(--mono);font-size:.62rem;color:var(--t3);width:160px;flex-shrink:0}}
+.rpt-kv-val{{color:var(--t1);line-height:1.5;flex:1}}
+.rpt-bullet{{display:flex;gap:8px;padding:4px 0;font-size:.78rem;color:rgba(232,232,240,.8);line-height:1.55}}
+.rpt-bullet span:first-child{{color:var(--blue);font-weight:700;flex-shrink:0}}
+.rpt-num-item{{display:flex;gap:10px;padding:5px 0;font-size:.78rem;color:rgba(232,232,240,.8);line-height:1.55}}
+.rpt-num{{font-family:var(--mono);font-size:.6rem;font-weight:600;color:#2dd4bf;min-width:20px;flex-shrink:0}}
+.rpt-p{{font-size:.82rem;color:rgba(232,232,240,.78);line-height:1.8;margin-bottom:10px}}
+.rpt-p strong{{color:var(--t1);font-weight:600}}
+.rpt-p em{{font-style:italic;color:var(--t2)}}
+.rpt-code{{font-family:var(--mono);font-size:.7rem;background:var(--s2);padding:1px 5px;border-radius:3px;border:1px solid var(--b1)}}
+.rpt-table-wrap{{overflow-x:auto;margin:10px 0 16px;border-radius:8px;border:1px solid var(--b1)}}
+.rpt-table{{width:100%;border-collapse:collapse;font-size:.74rem}}
+.rpt-table th{{padding:8px 12px;text-align:left;font-family:var(--mono);font-size:.54rem;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);background:var(--s2);border-bottom:1px solid var(--b1);white-space:nowrap}}
+.rpt-table td{{padding:8px 12px;border-bottom:1px solid var(--b1);color:var(--t2);vertical-align:top;line-height:1.45}}
+.rpt-table tr:last-child td{{border:none}}
+.rpt-table tr:hover td{{background:rgba(255,255,255,.015)}}
+.rpt-table td:first-child{{color:var(--t1)}}
 </style>
 </head>
 <body>
